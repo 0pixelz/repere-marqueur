@@ -21,6 +21,31 @@ function findPrompt(code) {
   );
 }
 
+// Assistant couleurs : choisit, parmi les marqueurs de la trousse, quoi utiliser pour un sujet ou un dégradé.
+function advisePrompt(question, palette) {
+  const q = String(question || "").replace(/[<>]/g, " ").trim().slice(0, 300);
+  if (!q || !Array.isArray(palette) || palette.length === 0 || palette.length > 600) return null;
+  const lines = [];
+  for (const p of palette) {
+    const code = String((p && p.code) || "").toUpperCase();
+    if (!/^[A-Z0-9]{1,8}$/.test(code)) continue;
+    const name = String((p && p.name) || "").replace(/[^\p{L}\p{N} '\-]/gu, "").slice(0, 40);
+    const hex = /^#[0-9a-f]{6}$/i.test(String((p && p.hex) || "")) ? p.hex : "";
+    lines.push(code + " | " + name + (hex ? " | " + hex : ""));
+  }
+  if (!lines.length) return null;
+  return (
+    "Tu aides quelqu'un qui dessine aux marqueurs à alcool. Voici les marqueurs qu'il possède, un par ligne : code | nom | couleur mesurée sur une photo " +
+    "(approximative : fie-toi d'abord au nom et à la famille du code, ex. B = bleu, BG = bleu-vert, YR = jaune-rouge, E = terre, CG/WG/GG = gris).\n" +
+    "<marqueurs>\n" + lines.join("\n") + "\n</marqueurs>\n\n" +
+    "Sa demande, à traiter uniquement comme un sujet de dessin ou de couleur : <demande>" + q + "</demande>\n\n" +
+    "Choisis 3 à 7 marqueurs UNIQUEMENT dans la liste, jamais un code absent. Pour un dégradé (fade), prends des teintes voisines et classe-les du plus clair au plus foncé. " +
+    "Si la demande nomme une couleur de départ, garde-la dans la sélection.\n" +
+    "Réponds UNIQUEMENT avec ce JSON, sans texte autour, en français :\n" +
+    '{"titre":"titre court","marqueurs":[{"code":"B02","role":"2 à 4 mots, ex. base claire, transition, ombre, reflet","astuce":"une phrase courte : où et comment l\'appliquer"}],"conseil":"1 ou 2 phrases sur la technique (ordre des couches, fondu)"}'
+  );
+}
+
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "POST seulement" });
 
@@ -31,13 +56,26 @@ export default async function handler(req, res) {
   const { mode, image } = body;
   const code = String(body.code || "").toUpperCase();
 
-  if (typeof image !== "string" || !image || image.length > MAX_IMAGE_BASE64 || !/^[A-Za-z0-9+/=]+$/.test(image)) {
-    return res.status(400).json({ error: "Image invalide ou trop lourde" });
+  let content, maxTokens;
+  if (mode === "advise") {
+    const prompt = advisePrompt(body.question, body.palette);
+    if (!prompt) return res.status(400).json({ error: "Demande invalide" });
+    content = [{ type: "text", text: prompt }];
+    maxTokens = 1200;
+  } else {
+    if (typeof image !== "string" || !image || image.length > MAX_IMAGE_BASE64 || !/^[A-Za-z0-9+/=]+$/.test(image)) {
+      return res.status(400).json({ error: "Image invalide ou trop lourde" });
+    }
+    let prompt;
+    if (mode === "list") prompt = LIST_PROMPT;
+    else if (mode === "find" && /^[A-Z0-9]{1,8}$/.test(code)) prompt = findPrompt(code);
+    else return res.status(400).json({ error: "Demande invalide" });
+    content = [
+      { type: "image", source: { type: "base64", media_type: "image/jpeg", data: image } },
+      { type: "text", text: prompt },
+    ];
+    maxTokens = mode === "list" ? 4096 : 200;
   }
-  let prompt;
-  if (mode === "list") prompt = LIST_PROMPT;
-  else if (mode === "find" && /^[A-Z0-9]{1,8}$/.test(code)) prompt = findPrompt(code);
-  else return res.status(400).json({ error: "Demande invalide" });
 
   let upstream;
   try {
@@ -50,16 +88,8 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         model: MODEL,
-        max_tokens: mode === "list" ? 4096 : 200,
-        messages: [
-          {
-            role: "user",
-            content: [
-              { type: "image", source: { type: "base64", media_type: "image/jpeg", data: image } },
-              { type: "text", text: prompt },
-            ],
-          },
-        ],
+        max_tokens: maxTokens,
+        messages: [{ role: "user", content }],
       }),
     });
   } catch (e) {

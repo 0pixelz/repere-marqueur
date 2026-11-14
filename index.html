@@ -2,122 +2,219 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Repère">
+<meta name="theme-color" content="#f4f2ee" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#14171d" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
 <title>Repère-marqueur</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&family=DM+Mono:wght@500&display=swap" rel="stylesheet">
 <style>
-/* Layout: one narrow column, search bar on top, zoomed hit first, whole case below. */
+/* Layout: phone app. Fixed title bar, three views, tab bar at the bottom. */
 :root{
-  --paper:#f4f2ee;
-  --card:#ffffff;
-  --ink:#1c2230;
-  --muted:#667085;
-  --line:#dcd8d0;
-  --accent:#1f5c7a;
-  --accent-ink:#ffffff;
-  --ring:#e5141b;
-  --warn:#9a5b00;
+  --paper:#f4f2ee; --card:#ffffff; --ink:#1c2230; --muted:#667085; --line:#dcd8d0;
+  --accent:#1f5c7a; --accent-ink:#ffffff; --ring:#e5141b; --warn:#9a5b00;
   --display:"Bricolage Grotesque","Avenir Next","Segoe UI",sans-serif;
   --body:"DM Sans","Helvetica Neue",Arial,sans-serif;
   --mono:"DM Mono",ui-monospace,Menlo,monospace;
+  --tab-h:62px;
 }
 @media (prefers-color-scheme: dark){
-  :root:not([data-theme="light"]){
+  :root{
     --paper:#14171d; --card:#1e232c; --ink:#eceef2; --muted:#9aa3b2; --line:#333a47;
     --accent:#6fb7d8; --accent-ink:#0d1a22; --ring:#ff3b41; --warn:#f0b455;
     color-scheme:dark;
   }
 }
-:root[data-theme="dark"]{
-  --paper:#14171d; --card:#1e232c; --ink:#eceef2; --muted:#9aa3b2; --line:#333a47;
-  --accent:#6fb7d8; --accent-ink:#0d1a22; --ring:#ff3b41; --warn:#f0b455;
-  color-scheme:dark;
-}
-*{box-sizing:border-box}
-html,body{margin:0}
-body{background:var(--paper);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.45}
-main{max-width:720px;margin:0 auto;padding:20px 16px 48px;display:flex;flex-direction:column;gap:16px}
-h1{font-family:var(--display);font-weight:800;font-size:28px;line-height:1.05;margin:0;text-wrap:balance}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%}
+body{background:var(--paper);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.45;
+  -webkit-text-size-adjust:100%;overscroll-behavior-y:none}
+.topbar{position:sticky;top:0;z-index:5;background:var(--paper);border-bottom:1px solid var(--line);
+  padding:calc(env(safe-area-inset-top) + 10px) 16px 10px;display:flex;align-items:baseline;gap:10px;justify-content:space-between}
+.topbar h1{font-family:var(--display);font-weight:800;font-size:22px;line-height:1.1;margin:0}
+.topbar small{font:500 13px var(--mono);color:var(--muted)}
+main{max-width:640px;margin:0 auto;padding:14px 16px calc(var(--tab-h) + env(safe-area-inset-bottom) + 24px)}
+.view{display:flex;flex-direction:column;gap:14px}
 h2{font-family:var(--display);font-weight:600;font-size:17px;margin:0}
 p{margin:0}
-.lede{color:var(--muted);font-size:15px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:12px}
 .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .search{display:flex;gap:8px}
-.search input{flex:1;min-width:0;font:500 20px var(--mono);letter-spacing:.04em;text-transform:uppercase;padding:12px 14px;border-radius:10px;border:2px solid var(--line);background:var(--paper);color:var(--ink)}
+.search input,.ask textarea{flex:1;min-width:0;padding:12px 14px;border-radius:12px;border:2px solid var(--line);background:var(--paper);color:var(--ink)}
+.search input{font:500 20px var(--mono);letter-spacing:.04em;text-transform:uppercase}
 .search input::placeholder{text-transform:none;letter-spacing:0;font-family:var(--body);font-size:16px;color:var(--muted)}
-button,.filebtn{font:700 15px var(--body);border-radius:10px;border:2px solid var(--accent);padding:11px 16px;cursor:pointer;background:var(--accent);color:var(--accent-ink)}
+.ask{display:flex;flex-direction:column;gap:8px}
+.ask textarea{font:400 16px var(--body);resize:none;min-height:76px}
+button,.filebtn{font:700 15px var(--body);border-radius:12px;border:2px solid var(--accent);padding:12px 16px;cursor:pointer;background:var(--accent);color:var(--accent-ink);min-height:46px}
 button.ghost,.filebtn{background:transparent;color:var(--accent)}
+.filebtn{display:inline-flex;align-items:center}
 button:disabled{opacity:.45;cursor:default}
-button:focus-visible,.filebtn:focus-within,input:focus-visible{outline:3px solid var(--ring);outline-offset:2px}
+button:focus-visible,.filebtn:focus-within,input:focus-visible,textarea:focus-visible{outline:3px solid var(--ring);outline-offset:2px}
 .filebtn input{position:absolute;opacity:0;width:1px;height:1px}
 .status{font-size:14px;color:var(--muted);min-height:20px}
 .status.warn{color:var(--warn)}
 .bar{height:6px;border-radius:3px;background:var(--line);overflow:hidden}
 .bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .3s}
 .chips{display:flex;gap:6px;flex-wrap:wrap}
-.chip{font:500 14px var(--mono);padding:6px 10px;border-radius:999px;border:1px solid var(--line);background:var(--paper);color:var(--ink);cursor:pointer}
+.chip{font:500 14px var(--mono);padding:8px 12px;min-height:0;border-radius:999px;border:1px solid var(--line);background:var(--paper);color:var(--ink);cursor:pointer}
+.chip.word{font-family:var(--body)}
 .chip[aria-pressed="true"]{border-color:var(--ring);color:var(--ring);border-width:2px}
-.found{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.found{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .found b{font:500 26px var(--mono);color:var(--ring)}
 .found span{color:var(--muted)}
-#zoom{width:100%;aspect-ratio:1/1;border-radius:10px;display:block;background:var(--line)}
-.stage{position:relative;border-radius:10px;overflow:hidden;line-height:0;background:var(--line)}
+.dot{width:22px;height:22px;border-radius:50%;border:1px solid var(--line);flex:none;display:inline-block}
+#zoom{width:100%;aspect-ratio:1/1;border-radius:12px;display:block;background:var(--line)}
+.stage{position:relative;border-radius:12px;overflow:hidden;line-height:0;background:var(--line)}
 .stage img{width:100%;height:auto;display:block;max-width:100%}
 .ring{position:absolute;width:6.4%;aspect-ratio:1/1;transform:translate(-50%,-50%);border:3px solid var(--ring);border-radius:50%;box-shadow:0 0 0 2px #fff,0 0 0 2px #fff inset;pointer-events:none}
+.ring i{position:absolute;left:50%;top:-4px;transform:translate(-50%,-100%);font:700 11px/1 var(--body);font-style:normal;background:var(--ring);color:#fff;border-radius:999px;padding:3px 6px}
 .ring.sel{animation:pulse 1.2s ease-out infinite}
 @keyframes pulse{0%{box-shadow:0 0 0 2px #fff,0 0 0 2px #fff inset,0 0 0 0 rgba(229,20,27,.7)}100%{box-shadow:0 0 0 2px #fff,0 0 0 2px #fff inset,0 0 0 22px rgba(229,20,27,0)}}
+/* palette suggested by the assistant */
+.fade{height:34px;border-radius:10px;border:1px solid var(--line)}
+.steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.steps li{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;align-items:center;padding:10px;border:1px solid var(--line);border-radius:12px;background:var(--paper);cursor:pointer}
+.steps .dot{width:38px;height:38px;grid-row:span 2}
+.steps .top{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.steps .top b{font:500 17px var(--mono)}
+.steps .top em{font-style:normal;font-size:13px;color:var(--accent);font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+.steps .note{font-size:14px;color:var(--muted)}
+.tip{font-size:15px}
+/* inventory */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(78px,1fr));gap:6px}
+.grid button{min-height:0;padding:8px 4px;border:1px solid var(--line);background:var(--paper);color:var(--ink);font:500 13px var(--mono);display:flex;flex-direction:column;align-items:center;gap:5px;border-radius:10px}
+.grid .dot{width:26px;height:26px}
+/* tab bar */
+.tabs{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--card);border-top:1px solid var(--line);
+  display:flex;justify-content:center;padding-bottom:env(safe-area-inset-bottom)}
+.tabs button{flex:1;max-width:220px;height:var(--tab-h);min-height:0;border:0;border-radius:0;background:transparent;color:var(--muted);
+  font:700 12px var(--body);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:0}
+.tabs svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.tabs button[aria-selected="true"]{color:var(--accent)}
 @media (prefers-reduced-motion: reduce){.ring.sel{animation:none}.bar i{transition:none}}
 [hidden]{display:none!important}
 </style>
 </head>
 <body>
+<header class="topbar">
+  <h1>Repère-marqueur</h1>
+  <small id="count"></small>
+</header>
+
 <main>
-  <header>
-    <h1>Repère-marqueur</h1>
-    <p class="lede">Tape un code de couleur. Le marqueur est encerclé en rouge sur la photo de ta trousse.</p>
-  </header>
-
-  <section class="card" aria-label="Recherche">
-    <form class="search" id="form">
-      <input id="q" type="text" inputmode="text" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="Code ou nom : BV312, Cerulean…" aria-label="Code ou nom de la couleur">
-      <button id="go" type="submit">Trouver</button>
-    </form>
-    <div class="status" id="status" role="status"></div>
-    <div class="bar" id="bar" hidden><i id="barfill"></i></div>
-    <div class="chips" id="chips" hidden></div>
-    <div class="row">
-      <button id="scan" type="button">Analyser la photo</button>
+  <!-- ============ Trouver ============ -->
+  <div class="view" id="view-trouver">
+    <section class="card" aria-label="Recherche">
+      <form class="search" id="form">
+        <input id="q" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="Code ou nom : BV312, Cerulean…" aria-label="Code ou nom de la couleur">
+        <button id="go" type="submit">Trouver</button>
+      </form>
+      <div class="status" id="status" role="status"></div>
+      <div class="bar" id="bar" hidden><i id="barfill"></i></div>
+      <div class="chips" id="chips" hidden></div>
       <button id="deep" type="button" class="ghost" hidden>Chercher directement sur la photo</button>
-      <label class="filebtn">Changer de photo<input id="file" type="file" accept="image/*"></label>
-    </div>
-  </section>
+    </section>
 
-  <section class="card" id="hitcard" hidden aria-label="Résultat">
-    <div class="found"><b id="hitcode"></b><span id="hitname"></span></div>
-    <canvas id="zoom" width="720" height="720"></canvas>
-  </section>
+    <section class="card" id="hitcard" hidden aria-label="Résultat">
+      <div class="found"><span class="dot" id="hitdot"></span><b id="hitcode"></b><span id="hitname"></span></div>
+      <canvas id="zoom" width="720" height="720"></canvas>
+      <button id="blend" type="button" class="ghost">Quoi utiliser avec cette couleur ?</button>
+    </section>
 
-  <section class="card" aria-label="Photo complète">
-    <h2>Toute la trousse</h2>
-    <div class="stage" id="stage"><img id="photo" src="trousse.jpg" alt="Photo de la trousse de marqueurs vue du dessus"></div>
-  </section>
+    <section class="card" aria-label="Photo complète">
+      <h2>Toute la trousse</h2>
+      <div class="stage" id="stage"><img id="photo" src="trousse.jpg" alt="Photo de la trousse de marqueurs vue du dessus"></div>
+    </section>
+  </div>
+
+  <!-- ============ Idées ============ -->
+  <div class="view" id="view-idees" hidden>
+    <section class="card" aria-label="Assistant couleurs">
+      <h2>Que veux-tu dessiner ?</h2>
+      <form class="ask" id="askform">
+        <textarea id="ask" maxlength="300" placeholder="Ex. un nuage avec des ombres douces, ou un dégradé à partir de BV312" aria-label="Ta demande"></textarea>
+        <div class="chips" id="ideas">
+          <button type="button" class="chip word">Un nuage</button>
+          <button type="button" class="chip word">Un coucher de soleil</button>
+          <button type="button" class="chip word">De l'eau</button>
+          <button type="button" class="chip word">Du feuillage</button>
+          <button type="button" class="chip word">Un teint de peau</button>
+          <button type="button" class="chip word">Du métal</button>
+        </div>
+        <button id="askgo" type="submit">Proposer des couleurs</button>
+      </form>
+      <div class="status" id="askstatus" role="status"></div>
+    </section>
+
+    <section class="card" id="advice" hidden aria-label="Couleurs proposées">
+      <h2 id="advtitle"></h2>
+      <div class="fade" id="advfade"></div>
+      <ol class="steps" id="advsteps"></ol>
+      <p class="tip" id="advtip"></p>
+      <button id="advshow" type="button">Les montrer sur la photo</button>
+    </section>
+  </div>
+
+  <!-- ============ Trousse ============ -->
+  <div class="view" id="view-trousse" hidden>
+    <section class="card" aria-label="Photo de la trousse">
+      <h2>Ma photo</h2>
+      <p class="status" id="scanstatus" role="status"></p>
+      <div class="bar" id="bar2" hidden><i id="barfill2"></i></div>
+      <div class="row">
+        <button id="scan" type="button">Analyser la photo</button>
+        <label class="filebtn">Changer de photo<input id="file" type="file" accept="image/*"></label>
+      </div>
+    </section>
+    <section class="card" id="invcard" hidden aria-label="Mes couleurs">
+      <h2>Mes couleurs</h2>
+      <div class="grid" id="inv"></div>
+    </section>
+  </div>
 </main>
+
+<nav class="tabs" role="tablist" aria-label="Sections">
+  <button role="tab" data-view="trouver" aria-selected="true">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.5-4.5"/></svg>Trouver
+  </button>
+  <button role="tab" data-view="idees" aria-selected="false">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 4.9L19 9.5l-4.2 3 1.4 5.2L12 14.8 7.8 17.7l1.4-5.2L5 9.5l5.2-1.6z"/></svg>Idées
+  </button>
+  <button role="tab" data-view="trousse" aria-selected="false">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="14" rx="3"/><path d="M8 6V4h8v2M3 12h18"/></svg>Trousse
+  </button>
+</nav>
 
 <script>
 (function(){
   "use strict";
   var $ = function(id){ return document.getElementById(id); };
   var photo = { img: $("photo"), key: "defaut", ready: false };
-  var index = [];      // {code, name, x, y} with x,y in 0..1 of the whole photo
-  var hits = [], sel = 0, busy = false, lastQuery = "";
+  var index = [];      // {code, name, x, y, hex} — x,y in 0..1 of the whole photo
+  var hits = [], sel = 0, busy = false, lastQuery = "", numbered = false, advice = [];
 
-  function say(msg, warn){ var s = $("status"); s.textContent = msg || ""; s.className = "status" + (warn ? " warn" : ""); }
+  function say(msg, warn){
+    ["status", "scanstatus"].forEach(function(id){ var s = $(id); s.textContent = msg || ""; s.className = "status" + (warn ? " warn" : ""); });
+  }
   function progress(done, total){
-    $("bar").hidden = total === 0;
-    $("barfill").style.width = total ? Math.round(done / total * 100) + "%" : "0";
+    [["bar", "barfill"], ["bar2", "barfill2"]].forEach(function(p){
+      $(p[0]).hidden = total === 0;
+      $(p[1]).style.width = total ? Math.round(done / total * 100) + "%" : "0";
+    });
+  }
+  function go(view){
+    ["trouver", "idees", "trousse"].forEach(function(v){ $("view-" + v).hidden = v !== view; });
+    Array.prototype.forEach.call(document.querySelectorAll(".tabs button"), function(b){
+      b.setAttribute("aria-selected", b.getAttribute("data-view") === view ? "true" : "false");
+    });
+    window.scrollTo(0, 0);
+    if (view === "trouver") draw();
   }
 
   /* ---- code normalisation: BV 312 = bv312, letter O next to digits = zero ---- */
@@ -128,26 +225,48 @@ button:focus-visible,.filebtn:focus-within,input:focus-visible{outline:3px solid
     return s;
   }
   function lev(a, b){
-    var m = a.length, n = b.length, i, j, prev, cur, tmp;
+    var m = a.length, n = b.length, i, j, prev, cur;
     if (Math.abs(m - n) > 1) return 9;
     prev = []; for (j = 0; j <= n; j++) prev[j] = j;
     for (i = 1; i <= m; i++){
       cur = [i];
-      for (j = 1; j <= n; j++){
-        cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
-      }
-      tmp = prev; prev = cur;
+      for (j = 1; j <= n; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+      prev = cur;
     }
     return prev[n];
   }
+  function byCode(code){ var c = canon(code); for (var i = 0; i < index.length; i++) if (index[i].code === c) return index[i]; return null; }
 
   /* ---- cache of the scan, per photo, in this browser only ---- */
   function loadCache(){
     try { var raw = localStorage.getItem("repere:" + photo.key); index = raw ? JSON.parse(raw) : []; }
     catch (e) { index = []; }
   }
-  function saveCache(){
-    try { localStorage.setItem("repere:" + photo.key, JSON.stringify(index)); } catch (e) {}
+  function saveCache(){ try { localStorage.setItem("repere:" + photo.key, JSON.stringify(index)); } catch (e) {} }
+
+  /* ---- colour of a cap, measured on the photo (label white and printed text are ignored) ---- */
+  var probe = document.createElement("canvas"); probe.width = probe.height = 24;
+  function capHex(item){
+    try {
+      var W = photo.img.naturalWidth, H = photo.img.naturalHeight, d = Math.max(W, H) * 0.03;
+      var ctx = probe.getContext("2d", { willReadFrequently: true });
+      ctx.drawImage(photo.img, item.x * W - d / 2, item.y * H - d / 2, d, d, 0, 0, 24, 24);
+      var px = ctx.getImageData(0, 0, 24, 24).data, r = 0, g = 0, b = 0, n = 0, R = 0, G = 0, B = 0, N = 0;
+      for (var i = 0; i < px.length; i += 4){
+        var l = (Math.max(px[i], px[i + 1], px[i + 2]) + Math.min(px[i], px[i + 1], px[i + 2])) / 510;
+        R += px[i]; G += px[i + 1]; B += px[i + 2]; N++;
+        if (l > 0.9 || l < 0.22) continue;
+        r += px[i]; g += px[i + 1]; b += px[i + 2]; n++;
+      }
+      if (n < 40){ r = R; g = G; b = B; n = N; }
+      var h = function(v){ var s = Math.round(v / n).toString(16); return s.length < 2 ? "0" + s : s; };
+      return "#" + h(r) + h(g) + h(b);
+    } catch (e) { return ""; }
+  }
+  function fillColours(){
+    var changed = false;
+    index.forEach(function(it){ if (!it.hex){ it.hex = capHex(it); changed = true; } });
+    if (changed) saveCache();
   }
 
   /* ---- tiles: the photo is cut in overlapping pieces so labels are big enough to read ---- */
@@ -177,8 +296,8 @@ button:focus-visible,.filebtn:focus-within,input:focus-visible{outline:3px solid
       r.onerror = reject; r.readAsDataURL(blob);
     });
   }
-  async function ask(job, blob){
-    var body = JSON.stringify({ mode: job.mode, code: job.code || "", image: await toBase64(blob) });
+  async function call(payload){
+    var body = JSON.stringify(payload);
     for (var attempt = 0; attempt < 2; attempt++){
       var res = await fetch("/api/claude", { method: "POST", headers: { "Content-Type": "application/json" }, body: body });
       if (res.status === 429 && attempt === 0){ await wait(6000); continue; }
@@ -188,6 +307,7 @@ button:focus-visible,.filebtn:focus-within,input:focus-visible{outline:3px solid
     }
     return "";
   }
+  async function ask(job, blob){ return call({ mode: job.mode, code: job.code || "", image: await toBase64(blob) }); }
   function parseJson(text, open, close){
     var a = text.indexOf(open), b = text.lastIndexOf(close);
     if (a < 0) return null;
@@ -206,9 +326,9 @@ button:focus-visible,.filebtn:focus-within,input:focus-visible{outline:3px solid
     await Promise.all(runs);
   }
   function explain(e){
-    if (e && e.code === "no_key") return "Clé API manquante ou refusée. Vérifie ANTHROPIC_API_KEY dans les variables d'environnement Vercel.";
+    if (e && e.code === "no_key") return "Clé API manquante ou refusée. Vérifie ANTHROPIC_API_KEY dans les variables d'environnement Vercel, puis redéploie.";
     if (e && e.code === "rate_limited") return "Trop de demandes d'un coup. Attends une minute et relance.";
-    return "L'analyse a échoué. Relance, ou reprends la photo plus nette.";
+    return "La demande a échoué" + (e && e.message ? " (" + String(e.message).slice(0, 120) + ")" : "") + ". Relance dans un instant.";
   }
 
   async function scan(){
@@ -242,8 +362,8 @@ button:focus-visible,.filebtn:focus-within,input:focus-visible{outline:3px solid
     var list = Object.keys(best).map(function(k){ var b = best[k]; return { code: b.code, name: b.name, x: b.x, y: b.y }; });
     if (stop && !list.length){ say(explain(stop), true); return; }
     if (!list.length){ say("Aucun code lisible. Reprends la photo de plus près, bien éclairée.", true); return; }
-    index = list; saveCache(); refresh();
-    say(list.length + " codes repérés" + (failed || stop ? " (certaines zones n'ont pas pu être lues)." : ". Tape un code pour le trouver."), !!(failed || stop));
+    index = list; fillColours(); saveCache(); refresh();
+    say(list.length + " codes repérés" + (failed || stop ? " (certaines zones n'ont pas pu être lues)." : "."), !!(failed || stop));
     if (lastQuery) search(lastQuery);
   }
 
@@ -262,7 +382,7 @@ button:focus-visible,.filebtn:focus-within,input:focus-visible{outline:3px solid
         if (o && o.found === true && o.x >= 0 && o.x <= 1000 && o.y >= 0 && o.y <= 1000){
           var edge = Math.min(o.x, 1000 - o.x, o.y, 1000 - o.y);
           if (!found || edge > found.edge)
-            found = { code: code, name: "", edge: edge, x: (t.x + o.x / 1000 * t.w) / W, y: (t.y + o.y / 1000 * t.h) / H };
+            found = { code: code, edge: edge, x: (t.x + o.x / 1000 * t.w) / W, y: (t.y + o.y / 1000 * t.h) / H };
         }
       } catch (e) {
         if (e && (e.code === "no_key" || e.code === "rate_limited")) stop = e;
@@ -272,18 +392,18 @@ button:focus-visible,.filebtn:focus-within,input:focus-visible{outline:3px solid
     progress(0, 0); busy = false; lock(false);
     if (found){
       index = index.filter(function(i){ return i.code !== code; });
-      index.push({ code: found.code, name: "", x: found.x, y: found.y }); saveCache();
+      index.push({ code: found.code, name: "", x: found.x, y: found.y }); fillColours(); saveCache(); refresh();
       search(code);
     } else say(stop ? explain(stop) : code + " n'apparaît pas sur cette photo. Vérifie le code ou reprends la photo.", true);
   }
 
   /* ---- search in the scan ---- */
   function search(raw){
-    lastQuery = raw;
+    lastQuery = raw; numbered = false;
     var q = canon(raw), name = String(raw || "").trim().toLowerCase();
     $("deep").hidden = true; $("chips").hidden = true; $("chips").innerHTML = "";
-    if (!q){ hits = []; draw(); say(index.length ? index.length + " codes repérés. Tape un code pour le trouver." : ""); return; }
-    if (!index.length){ hits = []; draw(); say("Analyse d'abord la photo, puis relance la recherche.", true); return; }
+    if (!q){ hits = []; draw(); say(""); return; }
+    if (!index.length){ hits = []; draw(); say("Analyse d'abord la photo dans l'onglet Trousse.", true); return; }
     hits = index.filter(function(i){ return i.code === q; });
     if (!hits.length && name.length >= 3)
       hits = index.filter(function(i){ return i.name.toLowerCase().indexOf(name) >= 0; }).slice(0, 12);
@@ -303,7 +423,7 @@ button:focus-visible,.filebtn:focus-within,input:focus-visible{outline:3px solid
     var box = $("chips"); box.hidden = false; box.innerHTML = "";
     codes.forEach(function(c, i){
       var b = document.createElement("button");
-      b.type = "button"; b.className = "chip"; b.textContent = c;
+      b.type = "button"; b.className = "chip"; b.textContent = (numbered ? (i + 1) + " · " : "") + c;
       if (isHits) b.setAttribute("aria-pressed", i === sel ? "true" : "false");
       b.addEventListener("click", function(){
         if (isHits){ sel = i; Array.prototype.forEach.call(box.children, function(el, k){ el.setAttribute("aria-pressed", k === i ? "true" : "false"); }); draw(); }
@@ -321,12 +441,14 @@ button:focus-visible,.filebtn:focus-within,input:focus-visible{outline:3px solid
       var r = document.createElement("div");
       r.className = "ring" + (i === sel ? " sel" : "");
       r.style.left = (h.x * 100) + "%"; r.style.top = (h.y * 100) + "%";
+      if (numbered){ var n = document.createElement("i"); n.textContent = i + 1; r.appendChild(n); }
       stage.appendChild(r);
     });
     var h = hits[sel];
     $("hitcard").hidden = !h;
     if (!h || !photo.ready) return;
     $("hitcode").textContent = h.code; $("hitname").textContent = h.name || "";
+    $("hitdot").style.background = h.hex || "transparent";
     var W = photo.img.naturalWidth, H = photo.img.naturalHeight;
     var side = Math.min(W, H, Math.max(W, H) * 0.26);
     var sx = Math.max(0, Math.min(W - side, h.x * W - side / 2));
@@ -340,28 +462,103 @@ button:focus-visible,.filebtn:focus-within,input:focus-visible{outline:3px solid
     ctx.beginPath(); ctx.arc(cx, cy, rad, 0, Math.PI * 2); ctx.stroke();
   }
 
+  /* ---- Idées: Claude picks colours among the markers of the case ---- */
+  function askSay(msg, warn){ var s = $("askstatus"); s.textContent = msg || ""; s.className = "status" + (warn ? " warn" : ""); }
+  async function advise(question){
+    question = String(question || "").trim();
+    if (busy) return;
+    if (!question){ askSay("Écris ce que tu veux dessiner.", true); return; }
+    if (!index.length){ askSay("Analyse d'abord la photo dans l'onglet Trousse : l'assistant choisit parmi tes couleurs.", true); return; }
+    busy = true; $("askgo").disabled = true; $("advice").hidden = true;
+    askSay("Choix des couleurs dans ta trousse…");
+    try {
+      var text = await call({ mode: "advise", question: question,
+        palette: index.map(function(i){ return { code: i.code, name: i.name, hex: i.hex || "" }; }) });
+      var o = parseJson(text, "{", "}");
+      var list = (o && Array.isArray(o.marqueurs) ? o.marqueurs : []).map(function(m){
+        var it = byCode(m && m.code);
+        return it ? { item: it, role: String(m.role || "").slice(0, 40), note: String(m.astuce || "").slice(0, 200) } : null;
+      }).filter(Boolean);
+      if (!list.length){ askSay("Aucune proposition utilisable. Reformule ta demande.", true); }
+      else { advice = list; showAdvice(o); askSay(""); }
+    } catch (e) { askSay(explain(e), true); }
+    busy = false; $("askgo").disabled = false;
+  }
+  function showAdvice(o){
+    $("advice").hidden = false;
+    $("advtitle").textContent = String(o.titre || "Couleurs proposées").slice(0, 80);
+    $("advtip").textContent = String(o.conseil || "").slice(0, 400);
+    var cols = advice.map(function(a){ return a.item.hex || "#888888"; });
+    $("advfade").style.background = cols.length > 1 ? "linear-gradient(90deg," + cols.join(",") + ")" : cols[0];
+    var ol = $("advsteps"); ol.innerHTML = "";
+    advice.forEach(function(a, i){
+      var li = document.createElement("li");
+      var dot = document.createElement("span"); dot.className = "dot"; dot.style.background = a.item.hex || "transparent";
+      var top = document.createElement("div"); top.className = "top";
+      var b = document.createElement("b"); b.textContent = (i + 1) + " · " + a.item.code;
+      var nm = document.createElement("span"); nm.textContent = a.item.name;
+      var em = document.createElement("em"); em.textContent = a.role;
+      top.appendChild(b); top.appendChild(nm); top.appendChild(em);
+      var note = document.createElement("div"); note.className = "note"; note.textContent = a.note;
+      li.appendChild(dot); li.appendChild(top); li.appendChild(note);
+      li.addEventListener("click", function(){ showOnPhoto(i); });
+      ol.appendChild(li);
+    });
+    $("advice").scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+  function showOnPhoto(i){
+    hits = advice.map(function(a){ return a.item; }); sel = i || 0; numbered = true; lastQuery = "";
+    $("q").value = ""; $("deep").hidden = true;
+    chipList(hits.map(function(h){ return h.code; }), true);
+    say(hits.length + " couleurs proposées. Touche un code pour le voir de près.");
+    go("trouver");
+  }
+
+  /* ---- Trousse: inventory ---- */
+  function refresh(){
+    $("scan").textContent = index.length ? "Réanalyser la photo" : "Analyser la photo";
+    $("scan").className = index.length ? "ghost" : "";
+    $("count").textContent = index.length ? index.length + " couleurs" : "";
+    var box = $("inv"); box.innerHTML = ""; $("invcard").hidden = !index.length;
+    index.slice().sort(function(a, b){ return a.code < b.code ? -1 : 1; }).forEach(function(it){
+      var b = document.createElement("button"); b.type = "button"; b.title = it.name;
+      var d = document.createElement("span"); d.className = "dot"; d.style.background = it.hex || "transparent";
+      b.appendChild(d); b.appendChild(document.createTextNode(it.code));
+      b.addEventListener("click", function(){ $("q").value = it.code; search(it.code); go("trouver"); });
+      box.appendChild(b);
+    });
+  }
   function ready(){
     if (!photo.ready){ say("La photo n'est pas encore chargée.", true); return false; }
     return true;
   }
-  function lock(on){ $("scan").disabled = on; $("deep").disabled = on; $("file").disabled = on; }
-  function refresh(){
-    $("scan").textContent = index.length ? "Réanalyser la photo" : "Analyser la photo";
-    $("scan").className = index.length ? "ghost" : "";
-  }
+  function lock(on){ $("scan").disabled = on; $("deep").disabled = on; $("file").disabled = on; $("askgo").disabled = on; }
   function photoLoaded(){
-    photo.ready = true; loadCache(); refresh(); hits = []; draw();
-    say(index.length ? index.length + " codes repérés. Tape un code pour le trouver." : "Première étape : analyse la photo (environ une minute, une seule fois par photo).");
+    photo.ready = true; loadCache(); fillColours(); refresh(); hits = []; draw();
+    say(index.length ? index.length + " codes repérés. Tape un code pour le trouver." : "Première étape : onglet Trousse, puis Analyser la photo (environ une minute, une seule fois par photo).");
   }
 
   /* ---- wiring ---- */
+  Array.prototype.forEach.call(document.querySelectorAll(".tabs button"), function(b){
+    b.addEventListener("click", function(){ go(b.getAttribute("data-view")); });
+  });
   $("form").addEventListener("submit", function(e){ e.preventDefault(); search($("q").value); $("q").blur(); });
   $("scan").addEventListener("click", scan);
   $("deep").addEventListener("click", deepSearch);
+  $("askform").addEventListener("submit", function(e){ e.preventDefault(); $("ask").blur(); advise($("ask").value); });
+  Array.prototype.forEach.call($("ideas").children, function(c){
+    c.addEventListener("click", function(){ $("ask").value = c.textContent; advise(c.textContent); });
+  });
+  $("advshow").addEventListener("click", function(){ showOnPhoto(0); });
+  $("blend").addEventListener("click", function(){
+    var h = hits[sel]; if (!h) return;
+    var qn = "Avec quelles couleurs faire un dégradé à partir de " + h.code + (h.name ? " (" + h.name + ")" : "") + " ?";
+    $("ask").value = qn; go("idees"); advise(qn);
+  });
   $("file").addEventListener("change", function(){
     var f = this.files && this.files[0]; if (!f) return;
     photo.ready = false; photo.key = f.name + ":" + f.size; lastQuery = ""; $("q").value = "";
-    $("chips").hidden = true; $("deep").hidden = true;
+    $("chips").hidden = true; $("deep").hidden = true; $("advice").hidden = true; advice = [];
     photo.img.src = URL.createObjectURL(f);
   });
   photo.img.addEventListener("load", photoLoaded);
