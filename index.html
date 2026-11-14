@@ -76,16 +76,26 @@ button:focus-visible,.filebtn:focus-within,input:focus-visible,textarea:focus-vi
 .ring i{position:absolute;left:50%;top:-4px;transform:translate(-50%,-100%);font:700 11px/1 var(--body);font-style:normal;background:var(--ring);color:#fff;border-radius:999px;padding:3px 6px}
 .ring.sel{animation:pulse 1.2s ease-out infinite}
 @keyframes pulse{0%{box-shadow:0 0 0 2px #fff,0 0 0 2px #fff inset,0 0 0 0 rgba(229,20,27,.7)}100%{box-shadow:0 0 0 2px #fff,0 0 0 2px #fff inset,0 0 0 22px rgba(229,20,27,0)}}
-/* palette suggested by the assistant */
-.fade{height:34px;border-radius:10px;border:1px solid var(--line)}
-.steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
-.steps li{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;align-items:center;padding:10px;border:1px solid var(--line);border-radius:12px;background:var(--paper);cursor:pointer}
-.steps .dot{width:38px;height:38px;grid-row:span 2}
-.steps .top{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
-.steps .top b{font:500 17px var(--mono)}
-.steps .top em{font-style:normal;font-size:13px;color:var(--accent);font-weight:700;text-transform:uppercase;letter-spacing:.04em}
-.steps .note{font-size:14px;color:var(--muted)}
-.tip{font-size:15px}
+/* assistant chat */
+.chat{display:flex;flex-direction:column;gap:10px}
+.msg{max-width:92%;padding:11px 14px;border-radius:18px;display:flex;flex-direction:column;gap:10px;overflow-wrap:anywhere}
+.msg.me{align-self:flex-end;background:var(--accent);color:var(--accent-ink);border-bottom-right-radius:6px}
+.msg.bot{align-self:flex-start;background:var(--card);border:1px solid var(--line);border-bottom-left-radius:6px}
+.msg.bot.wide{max-width:100%;width:100%}
+.msg.warn{color:var(--warn)}
+.msg.wait p{color:var(--muted)}
+.fade{height:30px;border-radius:10px;border:1px solid var(--line)}
+.steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.steps li{display:flex;gap:10px;align-items:center;padding:8px 10px;border:1px solid var(--line);border-radius:12px;background:var(--paper);cursor:pointer}
+.steps .dot{width:30px;height:30px}
+.steps b{font:500 16px var(--mono)}
+.steps .txt{display:flex;flex-direction:column;min-width:0}
+.steps .txt span{font-size:13px;color:var(--muted)}
+.composer{position:sticky;bottom:calc(var(--tab-h) + env(safe-area-inset-bottom) + 8px);display:flex;gap:8px;align-items:flex-end;
+  background:var(--card);border:1px solid var(--line);border-radius:24px;padding:6px 6px 6px 14px;box-shadow:0 6px 20px rgba(0,0,0,.12)}
+.composer textarea{flex:1;min-width:0;border:0;background:transparent;color:var(--ink);font:400 16px var(--body);resize:none;padding:10px 0;max-height:120px;outline:none}
+.composer button{width:46px;height:46px;min-height:0;padding:0;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center}
+.composer svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
 /* inventory */
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(78px,1fr));gap:6px}
 .grid button{min-height:0;padding:8px 4px;border:1px solid var(--line);background:var(--paper);color:var(--ink);font:500 13px var(--mono);display:flex;flex-direction:column;align-items:center;gap:5px;border-radius:10px}
@@ -133,32 +143,23 @@ button:focus-visible,.filebtn:focus-within,input:focus-visible,textarea:focus-vi
     </section>
   </div>
 
-  <!-- ============ Idées ============ -->
+  <!-- ============ Assistant ============ -->
   <div class="view" id="view-idees" hidden>
-    <section class="card" aria-label="Assistant couleurs">
-      <h2>Que veux-tu dessiner ?</h2>
-      <form class="ask" id="askform">
-        <textarea id="ask" maxlength="300" placeholder="Ex. un nuage avec des ombres douces, ou un dégradé à partir de BV312" aria-label="Ta demande"></textarea>
-        <div class="chips" id="ideas">
-          <button type="button" class="chip word">Un nuage</button>
-          <button type="button" class="chip word">Un coucher de soleil</button>
-          <button type="button" class="chip word">De l'eau</button>
-          <button type="button" class="chip word">Du feuillage</button>
-          <button type="button" class="chip word">Un teint de peau</button>
-          <button type="button" class="chip word">Du métal</button>
-        </div>
-        <button id="askgo" type="submit">Proposer des couleurs</button>
-      </form>
-      <div class="status" id="askstatus" role="status"></div>
-    </section>
-
-    <section class="card" id="advice" hidden aria-label="Couleurs proposées">
-      <h2 id="advtitle"></h2>
-      <div class="fade" id="advfade"></div>
-      <ol class="steps" id="advsteps"></ol>
-      <p class="tip" id="advtip"></p>
-      <button id="advshow" type="button">Les montrer sur la photo</button>
-    </section>
+    <div class="chat" id="chat" aria-live="polite">
+      <div class="msg bot"><p>Dis-moi ce que tu veux dessiner ou quelle couleur tu veux fondre. Je choisis dans ta trousse et j'encercle en rouge les marqueurs à sortir.</p></div>
+    </div>
+    <div class="chips" id="ideas">
+      <button type="button" class="chip word">Un nuage avec des ombres douces</button>
+      <button type="button" class="chip word">Un coucher de soleil</button>
+      <button type="button" class="chip word">Un fade à partir de BV312</button>
+      <button type="button" class="chip word">Un teint de peau</button>
+    </div>
+    <form class="composer" id="askform">
+      <textarea id="ask" rows="1" maxlength="600" placeholder="Ex. fade avec B02" aria-label="Ton message"></textarea>
+      <button id="askgo" type="submit" aria-label="Envoyer">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </button>
+    </form>
   </div>
 
   <!-- ============ Trousse ============ -->
@@ -184,7 +185,7 @@ button:focus-visible,.filebtn:focus-within,input:focus-visible,textarea:focus-vi
     <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.5-4.5"/></svg>Trouver
   </button>
   <button role="tab" data-view="idees" aria-selected="false">
-    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 4.9L19 9.5l-4.2 3 1.4 5.2L12 14.8 7.8 17.7l1.4-5.2L5 9.5l5.2-1.6z"/></svg>Idées
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/></svg>Assistant
   </button>
   <button role="tab" data-view="trousse" aria-selected="false">
     <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="14" rx="3"/><path d="M8 6V4h8v2M3 12h18"/></svg>Trousse
@@ -197,7 +198,7 @@ button:focus-visible,.filebtn:focus-within,input:focus-visible,textarea:focus-vi
   var $ = function(id){ return document.getElementById(id); };
   var photo = { img: $("photo"), key: "defaut", ready: false };
   var index = [];      // {code, name, x, y, hex} — x,y in 0..1 of the whole photo
-  var hits = [], sel = 0, busy = false, lastQuery = "", numbered = false, advice = [];
+  var hits = [], sel = 0, busy = false, lastQuery = "", numbered = false;
 
   function say(msg, warn){
     ["status", "scanstatus"].forEach(function(id){ var s = $(id); s.textContent = msg || ""; s.className = "status" + (warn ? " warn" : ""); });
@@ -462,52 +463,83 @@ button:focus-visible,.filebtn:focus-within,input:focus-visible,textarea:focus-vi
     ctx.beginPath(); ctx.arc(cx, cy, rad, 0, Math.PI * 2); ctx.stroke();
   }
 
-  /* ---- Idées: Claude picks colours among the markers of the case ---- */
-  function askSay(msg, warn){ var s = $("askstatus"); s.textContent = msg || ""; s.className = "status" + (warn ? " warn" : ""); }
-  async function advise(question){
-    question = String(question || "").trim();
-    if (busy) return;
-    if (!question){ askSay("Écris ce que tu veux dessiner.", true); return; }
-    if (!index.length){ askSay("Analyse d'abord la photo dans l'onglet Trousse : l'assistant choisit parmi tes couleurs.", true); return; }
-    busy = true; $("askgo").disabled = true; $("advice").hidden = true;
-    askSay("Choix des couleurs dans ta trousse…");
-    try {
-      var text = await call({ mode: "advise", question: question,
-        palette: index.map(function(i){ return { code: i.code, name: i.name, hex: i.hex || "" }; }) });
-      var o = parseJson(text, "{", "}");
-      var list = (o && Array.isArray(o.marqueurs) ? o.marqueurs : []).map(function(m){
-        var it = byCode(m && m.code);
-        return it ? { item: it, role: String(m.role || "").slice(0, 40), note: String(m.astuce || "").slice(0, 200) } : null;
-      }).filter(Boolean);
-      if (!list.length){ askSay("Aucune proposition utilisable. Reformule ta demande.", true); }
-      else { advice = list; showAdvice(o); askSay(""); }
-    } catch (e) { askSay(explain(e), true); }
-    busy = false; $("askgo").disabled = false;
+  /* ---- Assistant: a conversation; Claude picks colours among the markers of the case ---- */
+  var chat = [];   // {role, content} sent back to the server as history
+  function bubble(cls, text){
+    var m = document.createElement("div"); m.className = "msg " + cls;
+    if (text){ var p = document.createElement("p"); p.textContent = text; m.appendChild(p); }
+    $("chat").appendChild(m);
+    return m;
   }
-  function showAdvice(o){
-    $("advice").hidden = false;
-    $("advtitle").textContent = String(o.titre || "Couleurs proposées").slice(0, 80);
-    $("advtip").textContent = String(o.conseil || "").slice(0, 400);
-    var cols = advice.map(function(a){ return a.item.hex || "#888888"; });
-    $("advfade").style.background = cols.length > 1 ? "linear-gradient(90deg," + cols.join(",") + ")" : cols[0];
-    var ol = $("advsteps"); ol.innerHTML = "";
-    advice.forEach(function(a, i){
+  function toBottom(){ window.scrollTo({ top: document.documentElement.scrollHeight, behavior: "smooth" }); }
+  async function sendChat(text){
+    text = String(text || "").trim();
+    if (busy || !text) return;
+    $("ask").value = ""; $("ask").style.height = ""; $("ideas").hidden = true;
+    bubble("me", text);
+    if (!index.length){
+      bubble("bot warn", "Je dois d'abord connaître tes couleurs : va dans l'onglet Trousse et appuie sur Analyser la photo.");
+      toBottom(); return;
+    }
+    busy = true; $("askgo").disabled = true;
+    chat.push({ role: "user", content: text });
+    var waitMsg = bubble("bot wait", "Je regarde dans ta trousse…"); toBottom();
+    try {
+      var raw = await call({ mode: "chat", messages: chat.slice(-12),
+        palette: index.map(function(i){ return { code: i.code, name: i.name, hex: i.hex || "" }; }) });
+      var o = parseJson(raw, "{", "}") || { reponse: raw };
+      var picks = (Array.isArray(o.marqueurs) ? o.marqueurs : []).map(function(m){
+        var it = byCode(m && m.code);
+        return it ? { item: it, role: String(m.role || "").slice(0, 40) } : null;
+      }).filter(Boolean);
+      var reply = String(o.reponse || "").slice(0, 1200) || "Voici ce que je te propose.";
+      waitMsg.remove();
+      renderReply(reply, picks);
+      chat.push({ role: "assistant", content: reply + (picks.length ? "\nMarqueurs proposés : " + picks.map(function(p){ return p.item.code; }).join(", ") : "") });
+    } catch (e) {
+      chat.pop(); waitMsg.remove();
+      bubble("bot warn", explain(e));
+    }
+    busy = false; $("askgo").disabled = false; toBottom();
+  }
+  function renderReply(reply, picks){
+    var m = bubble("bot" + (picks.length ? " wide" : ""), reply);
+    if (!picks.length) return;
+    var items = picks.map(function(p){ return p.item; });
+    var cols = items.map(function(i){ return i.hex || "#888888"; });
+    var fade = document.createElement("div"); fade.className = "fade";
+    fade.style.background = cols.length > 1 ? "linear-gradient(90deg," + cols.join(",") + ")" : cols[0];
+    m.appendChild(fade);
+    var ol = document.createElement("ol"); ol.className = "steps";
+    picks.forEach(function(p, i){
       var li = document.createElement("li");
-      var dot = document.createElement("span"); dot.className = "dot"; dot.style.background = a.item.hex || "transparent";
-      var top = document.createElement("div"); top.className = "top";
-      var b = document.createElement("b"); b.textContent = (i + 1) + " · " + a.item.code;
-      var nm = document.createElement("span"); nm.textContent = a.item.name;
-      var em = document.createElement("em"); em.textContent = a.role;
-      top.appendChild(b); top.appendChild(nm); top.appendChild(em);
-      var note = document.createElement("div"); note.className = "note"; note.textContent = a.note;
-      li.appendChild(dot); li.appendChild(top); li.appendChild(note);
-      li.addEventListener("click", function(){ showOnPhoto(i); });
+      var dot = document.createElement("span"); dot.className = "dot"; dot.style.background = p.item.hex || "transparent";
+      var txt = document.createElement("div"); txt.className = "txt";
+      var b = document.createElement("b"); b.textContent = (i + 1) + " · " + p.item.code;
+      var sp = document.createElement("span"); sp.textContent = [p.item.name, p.role].filter(Boolean).join(" · ");
+      txt.appendChild(b); txt.appendChild(sp); li.appendChild(dot); li.appendChild(txt);
+      li.addEventListener("click", function(){ showOnPhoto(items, i); });
       ol.appendChild(li);
     });
-    $("advice").scrollIntoView({ behavior: "smooth", block: "start" });
+    m.appendChild(ol);
+    // the whole case with every proposed marker circled in red
+    var st = document.createElement("div"); st.className = "stage";
+    var im = document.createElement("img"); im.src = photo.img.src; im.alt = "Marqueurs proposés encerclés sur la photo de la trousse";
+    st.appendChild(im);
+    items.forEach(function(h, i){
+      var r = document.createElement("div"); r.className = "ring";
+      r.style.left = (h.x * 100) + "%"; r.style.top = (h.y * 100) + "%";
+      var n = document.createElement("i"); n.textContent = i + 1; r.appendChild(n);
+      st.appendChild(r);
+    });
+    st.addEventListener("click", function(){ showOnPhoto(items, 0); });
+    m.appendChild(st);
+    var big = document.createElement("button"); big.type = "button"; big.className = "ghost"; big.textContent = "Voir de près, un par un";
+    big.addEventListener("click", function(){ showOnPhoto(items, 0); });
+    m.appendChild(big);
   }
-  function showOnPhoto(i){
-    hits = advice.map(function(a){ return a.item; }); sel = i || 0; numbered = true; lastQuery = "";
+  function showOnPhoto(items, i){
+    hits = items.slice(); sel = i || 0; numbered = true; lastQuery = "";
     $("q").value = ""; $("deep").hidden = true;
     chipList(hits.map(function(h){ return h.code; }), true);
     say(hits.length + " couleurs proposées. Touche un code pour le voir de près.");
@@ -545,20 +577,20 @@ button:focus-visible,.filebtn:focus-within,input:focus-visible,textarea:focus-vi
   $("form").addEventListener("submit", function(e){ e.preventDefault(); search($("q").value); $("q").blur(); });
   $("scan").addEventListener("click", scan);
   $("deep").addEventListener("click", deepSearch);
-  $("askform").addEventListener("submit", function(e){ e.preventDefault(); $("ask").blur(); advise($("ask").value); });
+  $("askform").addEventListener("submit", function(e){ e.preventDefault(); sendChat($("ask").value); });
+  $("ask").addEventListener("keydown", function(e){ if (e.key === "Enter" && !e.shiftKey){ e.preventDefault(); sendChat($("ask").value); } });
+  $("ask").addEventListener("input", function(){ this.style.height = "auto"; this.style.height = Math.min(120, this.scrollHeight) + "px"; });
   Array.prototype.forEach.call($("ideas").children, function(c){
-    c.addEventListener("click", function(){ $("ask").value = c.textContent; advise(c.textContent); });
+    c.addEventListener("click", function(){ sendChat(c.textContent); });
   });
-  $("advshow").addEventListener("click", function(){ showOnPhoto(0); });
   $("blend").addEventListener("click", function(){
     var h = hits[sel]; if (!h) return;
-    var qn = "Avec quelles couleurs faire un dégradé à partir de " + h.code + (h.name ? " (" + h.name + ")" : "") + " ?";
-    $("ask").value = qn; go("idees"); advise(qn);
+    go("idees"); sendChat("Fais-moi un fade à partir de " + h.code + (h.name ? " (" + h.name + ")" : ""));
   });
   $("file").addEventListener("change", function(){
     var f = this.files && this.files[0]; if (!f) return;
     photo.ready = false; photo.key = f.name + ":" + f.size; lastQuery = ""; $("q").value = "";
-    $("chips").hidden = true; $("deep").hidden = true; $("advice").hidden = true; advice = [];
+    $("chips").hidden = true; $("deep").hidden = true; chat = [];
     photo.img.src = URL.createObjectURL(f);
   });
   photo.img.addEventListener("load", photoLoaded);

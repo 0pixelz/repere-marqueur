@@ -12,7 +12,7 @@ Tape un code de couleur (ex. `BV312`) ou un nom (ex. `Cerulean`) : l'app encercl
 ## Onglets
 
 - **Trouver** : recherche par code ou par nom, gros plan et cercle rouge sur la photo.
-- **Idées** : décris un sujet (« un nuage ») ou une couleur de départ ; Claude choisit 3 à 7 marqueurs de ta trousse, du plus clair au plus foncé, et l'app les montre sur la photo.
+- **Assistant** : une conversation. Demande un sujet (« un nuage ») ou un fade à partir d'un code ; Claude choisit 3 à 7 marqueurs de ta trousse et la réponse les montre encerclés en rouge sur la photo.
 - **Trousse** : changer la photo, lancer l'analyse, voir toutes les couleurs lues.
 
 Sur iPhone : Safari → Partager → « Sur l'écran d'accueil » pour l'ouvrir comme une app.
@@ -39,4 +39,4 @@ vercel dev
 
 ## Coût
 
-Une analyse complète fait 12 appels avec image. Une recherche ciblée en fait 12 autres, plus courts. Une demande dans Idées fait un seul appel, sans image.
+Une analyse complète fait 12 appels avec image. Une recherche ciblée en fait 12 autres, plus courts. Chaque message à l'assistant fait un seul appel, sans image.

@@ -21,10 +21,9 @@ function findPrompt(code) {
   );
 }
 
-// Assistant couleurs : choisit, parmi les marqueurs de la trousse, quoi utiliser pour un sujet ou un dégradé.
-function advisePrompt(question, palette) {
-  const q = String(question || "").replace(/[<>]/g, " ").trim().slice(0, 300);
-  if (!q || !Array.isArray(palette) || palette.length === 0 || palette.length > 600) return null;
+// Assistant : conversation sur les couleurs. Claude choisit uniquement parmi les marqueurs de la trousse.
+function chatRequest(messages, palette) {
+  if (!Array.isArray(messages) || !Array.isArray(palette) || palette.length === 0 || palette.length > 600) return null;
   const lines = [];
   for (const p of palette) {
     const code = String((p && p.code) || "").toUpperCase();
@@ -33,17 +32,29 @@ function advisePrompt(question, palette) {
     const hex = /^#[0-9a-f]{6}$/i.test(String((p && p.hex) || "")) ? p.hex : "";
     lines.push(code + " | " + name + (hex ? " | " + hex : ""));
   }
-  if (!lines.length) return null;
-  return (
-    "Tu aides quelqu'un qui dessine aux marqueurs à alcool. Voici les marqueurs qu'il possède, un par ligne : code | nom | couleur mesurée sur une photo " +
-    "(approximative : fie-toi d'abord au nom et à la famille du code, ex. B = bleu, BG = bleu-vert, YR = jaune-rouge, E = terre, CG/WG/GG = gris).\n" +
+  const turns = [];
+  for (const m of messages.slice(-12)) {
+    const role = m && m.role === "assistant" ? "assistant" : m && m.role === "user" ? "user" : null;
+    const text = String((m && m.content) || "").trim().slice(0, 1500);
+    if (!role || !text) continue;
+    if (!turns.length && role !== "user") continue;                    // must start with the user
+    if (turns.length && turns[turns.length - 1].role === role) turns[turns.length - 1].content += "\n" + text;
+    else turns.push({ role, content: text });
+  }
+  if (!lines.length || !turns.length || turns[turns.length - 1].role !== "user") return null;
+  const system =
+    "Tu es l'assistant d'une app pour dessiner aux marqueurs à alcool. Tu réponds en français, de façon naturelle et brève (2 à 4 phrases).\n" +
+    "Voici les marqueurs que la personne possède, un par ligne : code | nom | couleur mesurée sur une photo " +
+    "(approximative : fie-toi d'abord au nom et à la famille du code, ex. B = bleu, BG = bleu-vert, BV = bleu-violet, YR = jaune-rouge, E = terre, CG/WG/GG = gris).\n" +
     "<marqueurs>\n" + lines.join("\n") + "\n</marqueurs>\n\n" +
-    "Sa demande, à traiter uniquement comme un sujet de dessin ou de couleur : <demande>" + q + "</demande>\n\n" +
-    "Choisis 3 à 7 marqueurs UNIQUEMENT dans la liste, jamais un code absent. Pour un dégradé (fade), prends des teintes voisines et classe-les du plus clair au plus foncé. " +
-    "Si la demande nomme une couleur de départ, garde-la dans la sélection.\n" +
-    "Réponds UNIQUEMENT avec ce JSON, sans texte autour, en français :\n" +
-    '{"titre":"titre court","marqueurs":[{"code":"B02","role":"2 à 4 mots, ex. base claire, transition, ombre, reflet","astuce":"une phrase courte : où et comment l\'appliquer"}],"conseil":"1 ou 2 phrases sur la technique (ordre des couches, fondu)"}'
-  );
+    "Quand la demande porte sur des couleurs à utiliser (un sujet à dessiner, un dégradé ou « fade », quoi marier avec un code donné, des ombres, etc.), " +
+    "choisis 3 à 7 marqueurs UNIQUEMENT dans cette liste, jamais un code absent. Pour un fade, prends des teintes voisines classées du plus clair au plus foncé, " +
+    "et garde la couleur de départ si la personne en nomme une (un « numéro » ou « # » de couleur désigne un code de la liste). " +
+    "Si un code demandé n'est pas dans la liste, dis-le et propose le plus proche. " +
+    "Pour une question générale sans choix de couleurs, laisse la liste vide. Ne traite que de dessin, de couleurs et de marqueurs.\n" +
+    "Réponds UNIQUEMENT avec ce JSON, sans texte autour :\n" +
+    '{"reponse":"ta réponse, avec la technique en une phrase","marqueurs":[{"code":"B02","role":"2 à 4 mots : base claire, transition, ombre, reflet…"}]}';
+  return { system, messages: turns };
 }
 
 export default async function handler(req, res) {
@@ -57,10 +68,12 @@ export default async function handler(req, res) {
   const code = String(body.code || "").toUpperCase();
 
   let content, maxTokens;
-  if (mode === "advise") {
-    const prompt = advisePrompt(body.question, body.palette);
-    if (!prompt) return res.status(400).json({ error: "Demande invalide" });
-    content = [{ type: "text", text: prompt }];
+  let system;
+  if (mode === "chat") {
+    const chat = chatRequest(body.messages, body.palette);
+    if (!chat) return res.status(400).json({ error: "Demande invalide" });
+    system = chat.system;
+    content = chat.messages;
     maxTokens = 1200;
   } else {
     if (typeof image !== "string" || !image || image.length > MAX_IMAGE_BASE64 || !/^[A-Za-z0-9+/=]+$/.test(image)) {
@@ -89,7 +102,7 @@ export default async function handler(req, res) {
       body: JSON.stringify({
         model: MODEL,
         max_tokens: maxTokens,
-        messages: [{ role: "user", content }],
+        ...(system ? { system, messages: content } : { messages: [{ role: "user", content }] }),
       }),
     });
   } catch (e) {
