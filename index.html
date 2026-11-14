@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Repère-marqueur</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&family=DM+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+/* Layout: one narrow column, search bar on top, zoomed hit first, whole case below. */
+:root{
+  --paper:#f4f2ee;
+  --card:#ffffff;
+  --ink:#1c2230;
+  --muted:#667085;
+  --line:#dcd8d0;
+  --accent:#1f5c7a;
+  --accent-ink:#ffffff;
+  --ring:#e5141b;
+  --warn:#9a5b00;
+  --display:"Bricolage Grotesque","Avenir Next","Segoe UI",sans-serif;
+  --body:"DM Sans","Helvetica Neue",Arial,sans-serif;
+  --mono:"DM Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#14171d; --card:#1e232c; --ink:#eceef2; --muted:#9aa3b2; --line:#333a47;
+    --accent:#6fb7d8; --accent-ink:#0d1a22; --ring:#ff3b41; --warn:#f0b455;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#14171d; --card:#1e232c; --ink:#eceef2; --muted:#9aa3b2; --line:#333a47;
+  --accent:#6fb7d8; --accent-ink:#0d1a22; --ring:#ff3b41; --warn:#f0b455;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--paper);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.45}
+main{max-width:720px;margin:0 auto;padding:20px 16px 48px;display:flex;flex-direction:column;gap:16px}
+h1{font-family:var(--display);font-weight:800;font-size:28px;line-height:1.05;margin:0;text-wrap:balance}
+h2{font-family:var(--display);font-weight:600;font-size:17px;margin:0}
+p{margin:0}
+.lede{color:var(--muted);font-size:15px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:12px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.search{display:flex;gap:8px}
+.search input{flex:1;min-width:0;font:500 20px var(--mono);letter-spacing:.04em;text-transform:uppercase;padding:12px 14px;border-radius:10px;border:2px solid var(--line);background:var(--paper);color:var(--ink)}
+.search input::placeholder{text-transform:none;letter-spacing:0;font-family:var(--body);font-size:16px;color:var(--muted)}
+button,.filebtn{font:700 15px var(--body);border-radius:10px;border:2px solid var(--accent);padding:11px 16px;cursor:pointer;background:var(--accent);color:var(--accent-ink)}
+button.ghost,.filebtn{background:transparent;color:var(--accent)}
+button:disabled{opacity:.45;cursor:default}
+button:focus-visible,.filebtn:focus-within,input:focus-visible{outline:3px solid var(--ring);outline-offset:2px}
+.filebtn input{position:absolute;opacity:0;width:1px;height:1px}
+.status{font-size:14px;color:var(--muted);min-height:20px}
+.status.warn{color:var(--warn)}
+.bar{height:6px;border-radius:3px;background:var(--line);overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .3s}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{font:500 14px var(--mono);padding:6px 10px;border-radius:999px;border:1px solid var(--line);background:var(--paper);color:var(--ink);cursor:pointer}
+.chip[aria-pressed="true"]{border-color:var(--ring);color:var(--ring);border-width:2px}
+.found{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.found b{font:500 26px var(--mono);color:var(--ring)}
+.found span{color:var(--muted)}
+#zoom{width:100%;aspect-ratio:1/1;border-radius:10px;display:block;background:var(--line)}
+.stage{position:relative;border-radius:10px;overflow:hidden;line-height:0;background:var(--line)}
+.stage img{width:100%;height:auto;display:block;max-width:100%}
+.ring{position:absolute;width:6.4%;aspect-ratio:1/1;transform:translate(-50%,-50%);border:3px solid var(--ring);border-radius:50%;box-shadow:0 0 0 2px #fff,0 0 0 2px #fff inset;pointer-events:none}
+.ring.sel{animation:pulse 1.2s ease-out infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 2px #fff,0 0 0 2px #fff inset,0 0 0 0 rgba(229,20,27,.7)}100%{box-shadow:0 0 0 2px #fff,0 0 0 2px #fff inset,0 0 0 22px rgba(229,20,27,0)}}
+@media (prefers-reduced-motion: reduce){.ring.sel{animation:none}.bar i{transition:none}}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Repère-marqueur</h1>
+    <p class="lede">Tape un code de couleur. Le marqueur est encerclé en rouge sur la photo de ta trousse.</p>
+  </header>
+
+  <section class="card" aria-label="Recherche">
+    <form class="search" id="form">
+      <input id="q" type="text" inputmode="text" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="Code ou nom : BV312, Cerulean…" aria-label="Code ou nom de la couleur">
+      <button id="go" type="submit">Trouver</button>
+    </form>
+    <div class="status" id="status" role="status"></div>
+    <div class="bar" id="bar" hidden><i id="barfill"></i></div>
+    <div class="chips" id="chips" hidden></div>
+    <div class="row">
+      <button id="scan" type="button">Analyser la photo</button>
+      <button id="deep" type="button" class="ghost" hidden>Chercher directement sur la photo</button>
+      <label class="filebtn">Changer de photo<input id="file" type="file" accept="image/*"></label>
+    </div>
+  </section>
+
+  <section class="card" id="hitcard" hidden aria-label="Résultat">
+    <div class="found"><b id="hitcode"></b><span id="hitname"></span></div>
+    <canvas id="zoom" width="720" height="720"></canvas>
+  </section>
+
+  <section class="card" aria-label="Photo complète">
+    <h2>Toute la trousse</h2>
+    <div class="stage" id="stage"><img id="photo" src="trousse.jpg" alt="Photo de la trousse de marqueurs vue du dessus"></div>
+  </section>
+</main>
+
+<script>
+(function(){
+  "use strict";
+  var $ = function(id){ return document.getElementById(id); };
+  var photo = { img: $("photo"), key: "defaut", ready: false };
+  var index = [];      // {code, name, x, y} with x,y in 0..1 of the whole photo
+  var hits = [], sel = 0, busy = false, lastQuery = "";
+
+  function say(msg, warn){ var s = $("status"); s.textContent = msg || ""; s.className = "status" + (warn ? " warn" : ""); }
+  function progress(done, total){
+    $("bar").hidden = total === 0;
+    $("barfill").style.width = total ? Math.round(done / total * 100) + "%" : "0";
+  }
+
+  /* ---- code normalisation: BV 312 = bv312, letter O next to digits = zero ---- */
+  function canon(s){
+    s = String(s || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+    s = s.replace(/O(?=\d)/g, "0");
+    s = s.replace(/(\d)O/g, function(m, d){ return d + "0"; });
+    return s;
+  }
+  function lev(a, b){
+    var m = a.length, n = b.length, i, j, prev, cur, tmp;
+    if (Math.abs(m - n) > 1) return 9;
+    prev = []; for (j = 0; j <= n; j++) prev[j] = j;
+    for (i = 1; i <= m; i++){
+      cur = [i];
+      for (j = 1; j <= n; j++){
+        cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+      }
+      tmp = prev; prev = cur;
+    }
+    return prev[n];
+  }
+
+  /* ---- cache of the scan, per photo, in this browser only ---- */
+  function loadCache(){
+    try { var raw = localStorage.getItem("repere:" + photo.key); index = raw ? JSON.parse(raw) : []; }
+    catch (e) { index = []; }
+  }
+  function saveCache(){
+    try { localStorage.setItem("repere:" + photo.key, JSON.stringify(index)); } catch (e) {}
+  }
+
+  /* ---- tiles: the photo is cut in overlapping pieces so labels are big enough to read ---- */
+  function makeTiles(){
+    var W = photo.img.naturalWidth, H = photo.img.naturalHeight;
+    var cols = W >= H ? 4 : 3, rows = W >= H ? 3 : 4, ov = 0.18;
+    var tw = W / (cols * (1 - ov) + ov), th = H / (rows * (1 - ov) + ov);
+    var out = [], r, c;
+    for (r = 0; r < rows; r++) for (c = 0; c < cols; c++)
+      out.push({ x: c * tw * (1 - ov), y: r * th * (1 - ov), w: tw, h: th });
+    return out;
+  }
+  function tileBlob(t){
+    return new Promise(function(resolve, reject){
+      var k = Math.min(1, 1100 / Math.max(t.w, t.h));
+      var cv = document.createElement("canvas");
+      cv.width = Math.round(t.w * k); cv.height = Math.round(t.h * k);
+      cv.getContext("2d").drawImage(photo.img, t.x, t.y, t.w, t.h, 0, 0, cv.width, cv.height);
+      cv.toBlob(function(b){ b ? resolve(b) : reject(new Error("image")); }, "image/jpeg", 0.88);
+    });
+  }
+  function wait(ms){ return new Promise(function(r){ setTimeout(r, ms); }); }
+  function toBase64(blob){
+    return new Promise(function(resolve, reject){
+      var r = new FileReader();
+      r.onload = function(){ resolve(String(r.result).split(",")[1]); };
+      r.onerror = reject; r.readAsDataURL(blob);
+    });
+  }
+  async function ask(job, blob){
+    var body = JSON.stringify({ mode: job.mode, code: job.code || "", image: await toBase64(blob) });
+    for (var attempt = 0; attempt < 2; attempt++){
+      var res = await fetch("/api/claude", { method: "POST", headers: { "Content-Type": "application/json" }, body: body });
+      if (res.status === 429 && attempt === 0){ await wait(6000); continue; }
+      var data = await res.json().catch(function(){ return {}; });
+      if (!res.ok){ var err = new Error(data.error || "http " + res.status); err.code = res.status === 429 ? "rate_limited" : (data.code || "server"); throw err; }
+      return data.text || "";
+    }
+    return "";
+  }
+  function parseJson(text, open, close){
+    var a = text.indexOf(open), b = text.lastIndexOf(close);
+    if (a < 0) return null;
+    var body = b > a ? text.slice(a, b + 1) : text.slice(a);
+    try { return JSON.parse(body); } catch (e) {}
+    if (open === "["){               // answer cut short: keep the complete items
+      var cut = body.lastIndexOf("}");
+      if (cut > 0){ try { return JSON.parse(body.slice(0, cut + 1) + "]"); } catch (e2) {} }
+    }
+    return null;
+  }
+  async function pool(items, n, fn){
+    var i = 0;
+    async function run(){ while (i < items.length){ var k = i++; await fn(items[k], k); } }
+    var runs = []; for (var j = 0; j < n; j++) runs.push(run());
+    await Promise.all(runs);
+  }
+  function explain(e){
+    if (e && e.code === "no_key") return "Clé API manquante ou refusée. Vérifie ANTHROPIC_API_KEY dans les variables d'environnement Vercel.";
+    if (e && e.code === "rate_limited") return "Trop de demandes d'un coup. Attends une minute et relance.";
+    return "L'analyse a échoué. Relance, ou reprends la photo plus nette.";
+  }
+
+  async function scan(){
+    if (busy || !ready()) return;
+    busy = true; lock(true);
+    var tiles = makeTiles(), done = 0, best = {}, failed = 0, stop = null;
+    say("Lecture des étiquettes : 0 / " + tiles.length + " zones");
+    progress(0, tiles.length);
+    var W = photo.img.naturalWidth, H = photo.img.naturalHeight;
+    await pool(tiles, 3, async function(t){
+      if (stop) return;
+      try {
+        var arr = parseJson(await ask({ mode: "list" }, await tileBlob(t)), "[", "]");
+        if (!Array.isArray(arr)) { failed++; }
+        else arr.forEach(function(it){
+          var code = canon(it && it.code), x = Number(it && it.x), y = Number(it && it.y);
+          if (!code || !(x >= 0 && x <= 1000 && y >= 0 && y <= 1000)) return;
+          var edge = Math.min(x, 1000 - x, y, 1000 - y);
+          if (best[code] && best[code].edge >= edge) return;
+          best[code] = { code: code, name: String(it.name || "").slice(0, 40), edge: edge,
+            x: (t.x + x / 1000 * t.w) / W, y: (t.y + y / 1000 * t.h) / H };
+        });
+      } catch (e) {
+        if (e && (e.code === "no_key" || e.code === "rate_limited")) stop = e; else failed++;
+      }
+      done++;
+      say("Lecture des étiquettes : " + done + " / " + tiles.length + " zones");
+      progress(done, tiles.length);
+    });
+    progress(0, 0); busy = false; lock(false);
+    var list = Object.keys(best).map(function(k){ var b = best[k]; return { code: b.code, name: b.name, x: b.x, y: b.y }; });
+    if (stop && !list.length){ say(explain(stop), true); return; }
+    if (!list.length){ say("Aucun code lisible. Reprends la photo de plus près, bien éclairée.", true); return; }
+    index = list; saveCache(); refresh();
+    say(list.length + " codes repérés" + (failed || stop ? " (certaines zones n'ont pas pu être lues)." : ". Tape un code pour le trouver."), !!(failed || stop));
+    if (lastQuery) search(lastQuery);
+  }
+
+  /* ---- fallback: look for one code on every tile ---- */
+  async function deepSearch(){
+    var code = canon(lastQuery);
+    if (busy || !ready() || !code) return;
+    busy = true; lock(true);
+    var tiles = makeTiles(), done = 0, found = null, stop = null;
+    var W = photo.img.naturalWidth, H = photo.img.naturalHeight;
+    say("Recherche de " + code + " zone par zone…"); progress(0, tiles.length);
+    await pool(tiles, 3, async function(t){
+      if (stop) return;
+      try {
+        var o = parseJson(await ask({ mode: "find", code: code }, await tileBlob(t)), "{", "}");
+        if (o && o.found === true && o.x >= 0 && o.x <= 1000 && o.y >= 0 && o.y <= 1000){
+          var edge = Math.min(o.x, 1000 - o.x, o.y, 1000 - o.y);
+          if (!found || edge > found.edge)
+            found = { code: code, name: "", edge: edge, x: (t.x + o.x / 1000 * t.w) / W, y: (t.y + o.y / 1000 * t.h) / H };
+        }
+      } catch (e) {
+        if (e && (e.code === "no_key" || e.code === "rate_limited")) stop = e;
+      }
+      done++; progress(done, tiles.length);
+    });
+    progress(0, 0); busy = false; lock(false);
+    if (found){
+      index = index.filter(function(i){ return i.code !== code; });
+      index.push({ code: found.code, name: "", x: found.x, y: found.y }); saveCache();
+      search(code);
+    } else say(stop ? explain(stop) : code + " n'apparaît pas sur cette photo. Vérifie le code ou reprends la photo.", true);
+  }
+
+  /* ---- search in the scan ---- */
+  function search(raw){
+    lastQuery = raw;
+    var q = canon(raw), name = String(raw || "").trim().toLowerCase();
+    $("deep").hidden = true; $("chips").hidden = true; $("chips").innerHTML = "";
+    if (!q){ hits = []; draw(); say(index.length ? index.length + " codes repérés. Tape un code pour le trouver." : ""); return; }
+    if (!index.length){ hits = []; draw(); say("Analyse d'abord la photo, puis relance la recherche.", true); return; }
+    hits = index.filter(function(i){ return i.code === q; });
+    if (!hits.length && name.length >= 3)
+      hits = index.filter(function(i){ return i.name.toLowerCase().indexOf(name) >= 0; }).slice(0, 12);
+    sel = 0;
+    if (hits.length){
+      say(hits.length > 1 ? hits.length + " marqueurs correspondent. Touche un code pour le voir." : "Trouvé.");
+      if (hits.length > 1) chipList(hits.map(function(h){ return h.code; }), true);
+    } else {
+      var near = index.filter(function(i){ return lev(i.code, q) <= 1; }).slice(0, 8);
+      say(q + " n'est pas dans les codes lus." + (near.length ? " Codes proches :" : ""), true);
+      if (near.length) chipList(near.map(function(h){ return h.code; }), false);
+      $("deep").hidden = false;
+    }
+    draw();
+  }
+  function chipList(codes, isHits){
+    var box = $("chips"); box.hidden = false; box.innerHTML = "";
+    codes.forEach(function(c, i){
+      var b = document.createElement("button");
+      b.type = "button"; b.className = "chip"; b.textContent = c;
+      if (isHits) b.setAttribute("aria-pressed", i === sel ? "true" : "false");
+      b.addEventListener("click", function(){
+        if (isHits){ sel = i; Array.prototype.forEach.call(box.children, function(el, k){ el.setAttribute("aria-pressed", k === i ? "true" : "false"); }); draw(); }
+        else { $("q").value = c; search(c); }
+      });
+      box.appendChild(b);
+    });
+  }
+
+  /* ---- drawing: red rings on the whole photo, close-up of the selected hit ---- */
+  function draw(){
+    var stage = $("stage");
+    Array.prototype.slice.call(stage.querySelectorAll(".ring")).forEach(function(el){ el.remove(); });
+    hits.forEach(function(h, i){
+      var r = document.createElement("div");
+      r.className = "ring" + (i === sel ? " sel" : "");
+      r.style.left = (h.x * 100) + "%"; r.style.top = (h.y * 100) + "%";
+      stage.appendChild(r);
+    });
+    var h = hits[sel];
+    $("hitcard").hidden = !h;
+    if (!h || !photo.ready) return;
+    $("hitcode").textContent = h.code; $("hitname").textContent = h.name || "";
+    var W = photo.img.naturalWidth, H = photo.img.naturalHeight;
+    var side = Math.min(W, H, Math.max(W, H) * 0.26);
+    var sx = Math.max(0, Math.min(W - side, h.x * W - side / 2));
+    var sy = Math.max(0, Math.min(H - side, h.y * H - side / 2));
+    var cv = $("zoom"), ctx = cv.getContext("2d"), k = cv.width / side;
+    ctx.drawImage(photo.img, sx, sy, side, side, 0, 0, cv.width, cv.height);
+    var cx = (h.x * W - sx) * k, cy = (h.y * H - sy) * k, rad = Math.max(W, H) * 0.031 * k;
+    ctx.lineWidth = 12; ctx.strokeStyle = "#ffffff";
+    ctx.beginPath(); ctx.arc(cx, cy, rad, 0, Math.PI * 2); ctx.stroke();
+    ctx.lineWidth = 7; ctx.strokeStyle = "#e5141b";
+    ctx.beginPath(); ctx.arc(cx, cy, rad, 0, Math.PI * 2); ctx.stroke();
+  }
+
+  function ready(){
+    if (!photo.ready){ say("La photo n'est pas encore chargée.", true); return false; }
+    return true;
+  }
+  function lock(on){ $("scan").disabled = on; $("deep").disabled = on; $("file").disabled = on; }
+  function refresh(){
+    $("scan").textContent = index.length ? "Réanalyser la photo" : "Analyser la photo";
+    $("scan").className = index.length ? "ghost" : "";
+  }
+  function photoLoaded(){
+    photo.ready = true; loadCache(); refresh(); hits = []; draw();
+    say(index.length ? index.length + " codes repérés. Tape un code pour le trouver." : "Première étape : analyse la photo (environ une minute, une seule fois par photo).");
+  }
+
+  /* ---- wiring ---- */
+  $("form").addEventListener("submit", function(e){ e.preventDefault(); search($("q").value); $("q").blur(); });
+  $("scan").addEventListener("click", scan);
+  $("deep").addEventListener("click", deepSearch);
+  $("file").addEventListener("change", function(){
+    var f = this.files && this.files[0]; if (!f) return;
+    photo.ready = false; photo.key = f.name + ":" + f.size; lastQuery = ""; $("q").value = "";
+    $("chips").hidden = true; $("deep").hidden = true;
+    photo.img.src = URL.createObjectURL(f);
+  });
+  photo.img.addEventListener("load", photoLoaded);
+  photo.img.addEventListener("error", function(){ say("Cette image ne peut pas être ouverte. Choisis une photo JPEG ou PNG.", true); });
+  if (photo.img.complete && photo.img.naturalWidth) photoLoaded();
+})();
+</script>
+</body>
+</html>
