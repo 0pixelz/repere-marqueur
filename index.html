@@ -706,7 +706,8 @@ ul.tips{list-style:disc}
       var res = await fetch("/api/claude", { method: "POST", headers: { "Content-Type": "application/json" }, body: body });
       if (res.status === 429 && attempt === 0){ await wait(6000); continue; }
       var data = await res.json().catch(function(){ return {}; });
-      if (!res.ok){ var err = new Error(data.error || "http " + res.status); err.code = res.status === 429 ? "rate_limited" : (data.code || "server"); throw err; }
+      if (!res.ok){ var err = new Error(data.error || "http " + res.status); err.code = res.status === 429 ? "rate_limited" : (data.code || "server"); err.stop = data.stop || ""; throw err; }
+      call.stop = data.stop || "";
       return data.text || "";
     }
     return "";
@@ -729,7 +730,23 @@ ul.tips{list-style:disc}
     var runs = []; for (var j = 0; j < n; j++) runs.push(run());
     await Promise.all(runs);
   }
+  // the assistant's answer, read tolerantly: code fences, accented keys, or an answer cut short
+  function parseReply(raw){
+    var t = String(raw || "").replace(/```(?:json)?/gi, "");
+    var o = parseJson(t, "{", "}");
+    if (!o){
+      var rm = /"r[eé]ponse"\s*:\s*"((?:[^"\\]|\\.)*)"/.exec(t), at = t.search(/"marqueurs"\s*:/), arr = null, rep = "";
+      if (at >= 0 && t.indexOf("[", at) >= 0) arr = parseJson(t.slice(t.indexOf("[", at)), "[", "]");
+      if (rm){ try { rep = JSON.parse('"' + rm[1] + '"'); } catch (e) { rep = rm[1]; } }
+      if (rm || arr) o = { reponse: rep, marqueurs: arr || [] };
+    }
+    if (!o) return { reponse: /[{}\[\]]/.test(t) ? "" : t.trim(), marqueurs: [] };
+    var list = o.marqueurs || o.markers || o.marqueur || [];
+    return { reponse: String(o.reponse || o["réponse"] || o.response || o.answer || ""), marqueurs: Array.isArray(list) ? list : [] };
+  }
   function explain(e){
+    if (e && e.code === "empty") return e.stop === "refusal" ? "Claude n'a pas voulu répondre à cette demande. Reformule ou essaie une autre image." :
+      "Claude n'a rien répondu" + (e.stop ? " (" + e.stop + ")" : "") + ". Réessaie dans un instant.";
     if (e && e.code === "no_key") return "Clé API manquante ou refusée. Vérifie ANTHROPIC_API_KEY dans les variables d'environnement Vercel, puis redéploie.";
     if (e && e.code === "rate_limited") return "Trop de demandes d'un coup. Attends une minute et relance.";
     return "La demande a échoué" + (e && e.message ? " (" + String(e.message).slice(0, 120) + ")" : "") + ". Relance dans un instant.";
@@ -938,15 +955,20 @@ ul.tips{list-style:disc}
     try {
       var raw = await call({ mode: "chat", messages: chat.slice(-12), image: drawing ? await toBase64(drawing) : "",
         palette: index.filter(function(i){ return !i.empty; }).map(function(i){ return { code: i.code, name: i.name, hex: i.hex || "" }; }) });
-      var o = parseJson(raw, "{", "}") || { reponse: raw };
-      var picks = (Array.isArray(o.marqueurs) ? o.marqueurs : []).map(function(m){
+      var o = parseReply(raw);
+      var picks = o.marqueurs.map(function(m){
         var it = byCode(m && m.code);
         var pts = (Array.isArray(m && m.points) ? m.points : []).filter(function(q){
           return Array.isArray(q) && q[0] >= 0 && q[0] <= 1000 && q[1] >= 0 && q[1] <= 1000;
         }).slice(0, 4);
         return it ? { item: it, role: String(m.role || "").slice(0, 60), pts: pts } : null;
       }).filter(Boolean);
-      var reply = String(o.reponse || "").slice(0, 1200) || "Voici ce que je te propose.";
+      var reply = String(o.reponse || "").slice(0, 1200);
+      if (!reply && !picks.length){
+        var why = new Error("réponse illisible" + (call.stop === "max_tokens" ? ", coupée car trop longue" : "") + " : " + String(raw).slice(0, 80));
+        throw why;
+      }
+      if (!reply) reply = "Voici ce que je te propose.";
       waitMsg.remove();
       renderReply(reply, picks, sentPic);
       chat.push({ role: "assistant", content: reply + (picks.length ? "\nMarqueurs proposés : " + picks.map(function(p){ return p.item.code; }).join(", ") : "") });

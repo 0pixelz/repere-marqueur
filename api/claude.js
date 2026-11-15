@@ -67,7 +67,7 @@ function chatRequest(messages, palette) {
     "Avec une image, ajoute à chaque marqueur « points » : 1 à 4 positions [x, y] en millièmes de la largeur et de la hauteur de l'image (origine en haut à gauche), " +
     "chacune bien à l'intérieur d'une zone à colorier avec ce marqueur, loin des traits. Pour un ton d'ombre, place le point là où l'ombre irait dans la zone. Sans image, n'ajoute pas « points ». " +
     "Pour une question générale sans choix de couleurs, laisse la liste vide. Ne traite que de dessin, de couleurs et de marqueurs.\n" +
-    "Réponds UNIQUEMENT avec ce JSON, sans texte autour :\n" +
+    "Réponds UNIQUEMENT avec ce JSON, sans texte autour, sans bloc de code, avec exactement ces noms de clés (sans accent) :\n" +
     '{"reponse":"ta réponse, avec la technique en une phrase","marqueurs":[{"code":"B02","role":"2 à 4 mots : base claire, transition, ombre, reflet…","points":[[512,430]]}]}';
   return { system, messages: turns };
 }
@@ -100,7 +100,7 @@ export default async function handler(req, res) {
     }
     system = chat.system;
     content = chat.messages;
-    maxTokens = 2200;
+    maxTokens = 3000;
   } else {
     if (typeof image !== "string" || !image || image.length > MAX_IMAGE_BASE64 || !/^[A-Za-z0-9+/=]+$/.test(image)) {
       return res.status(400).json({ error: "Image invalide ou trop lourde" });
@@ -144,7 +144,10 @@ export default async function handler(req, res) {
     });
   }
   const text = (data.content || []).filter((b) => b.type === "text").map((b) => b.text).join("");
-  return res.status(200).json({ text });
+  if (!text.trim()) {
+    return res.status(502).json({ code: "empty", stop: data.stop_reason || "", error: "Réponse vide de Claude" + (data.stop_reason ? " (" + data.stop_reason + ")" : "") });
+  }
+  return res.status(200).json({ text, stop: data.stop_reason || "" });
 }
 
 function safeParse(s) {
