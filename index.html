@@ -122,6 +122,8 @@ ul.tips{list-style:disc}
 .cand span{font-size:13px;color:var(--muted)}
 .cand button{min-height:0;padding:8px 12px;font-size:13px}
 .tag{font:700 11px var(--body);text-transform:uppercase;letter-spacing:.04em;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:2px 8px;margin-left:6px}
+img.shared{width:100%;height:auto;border-radius:12px;border:1.5px solid var(--stroke);display:block}
+.palhead .row{flex-wrap:nowrap;gap:6px}
 canvas.preview{width:100%;height:auto;border-radius:12px;display:block}
 /* first launch */
 .welcome{gap:14px;padding:20px 16px}
@@ -1354,6 +1356,53 @@ canvas.preview{width:100%;height:auto;border-radius:12px;display:block}
     var n = parseInt(String(hex || "#888888").slice(1), 16);
     return ((n >> 16) * 299 + ((n >> 8) & 255) * 587 + (n & 255) * 114) / 1000 > 150 ? "#1c1c1c" : "#ffffff";
   }
+  /* ---- share a palette as an image: swatches, codes, names ---- */
+  function paletteImage(name, picks){
+    var W = 1080, pad = 64, rowH = 124, top = 330, H = top + picks.length * rowH + pad;
+    var cv = document.createElement("canvas"); cv.width = W; cv.height = H;
+    var c = cv.getContext("2d"), sans = '"DM Sans", Helvetica, Arial, sans-serif';
+    c.fillStyle = "#f6f4ef"; c.fillRect(0, 0, W, H);
+    c.fillStyle = "#26272b"; c.textBaseline = "alphabetic";
+    c.font = '700 58px "Fredoka", ' + sans;
+    var title = String(name || "Palette"); while (title.length > 4 && c.measureText(title).width > W - pad * 2) title = title.slice(0, -2) + "…";
+    c.fillText(title, pad, 118);
+    c.font = "400 30px " + sans; c.fillStyle = "#6c6f76";
+    c.fillText(picks.length + (picks.length > 1 ? " marqueurs" : " marqueur") + " · Repère-marqueur", pad, 168);
+    // band of all the colours, lightest to darkest as listed
+    var g = c.createLinearGradient(pad, 0, W - pad, 0), n = picks.length;
+    picks.forEach(function(p, i){ g.addColorStop(n > 1 ? i / (n - 1) : 0, p.item.hex || "#888888"); });
+    c.fillStyle = g; c.strokeStyle = "#26272b"; c.lineWidth = 4;
+    c.beginPath(); c.rect(pad, 210, W - pad * 2, 76); c.fill(); c.stroke();
+    picks.forEach(function(p, i){
+      var y = top + i * rowH + rowH / 2;
+      c.beginPath(); c.arc(pad + 46, y, 44, 0, Math.PI * 2); c.fillStyle = p.item.hex || "#888888"; c.fill(); c.lineWidth = 4; c.strokeStyle = "#26272b"; c.stroke();
+      c.fillStyle = "#26272b"; c.font = '700 46px "DM Mono", Menlo, monospace'; c.fillText((i + 1) + " · " + p.item.code, pad + 120, y - 2);
+      c.fillStyle = "#6c6f76"; c.font = "400 30px " + sans;
+      var sub2 = [p.item.name, p.role].filter(Boolean).join(" · "); while (sub2.length > 4 && c.measureText(sub2).width > W - pad * 2 - 120) sub2 = sub2.slice(0, -2) + "…";
+      c.fillText(sub2, pad + 120, y + 40);
+    });
+    return cv;
+  }
+  function sharePalette(name, picks, btn){
+    var label = btn.textContent; btn.disabled = true;
+    paletteImage(name, picks).toBlob(function(blob){
+      btn.disabled = false;
+      if (!blob){ btn.textContent = "Image impossible ici"; return; }
+      var file = null;
+      try { file = new File([blob], (String(name || "palette").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "palette") + ".png", { type: "image/png" }); } catch (e) {}
+      if (file && navigator.canShare && navigator.canShare({ files: [file] })){
+        navigator.share({ files: [file], title: name || "Palette" }).catch(function(){});
+        return;
+      }
+      // no share sheet here: show the image so it can be saved by hand
+      var old = btn.parentNode.querySelector("img.shared"); if (old) old.remove();
+      var im = document.createElement("img"); im.className = "shared"; im.alt = "Image de la palette"; im.src = URL.createObjectURL(blob);
+      btn.parentNode.insertBefore(im, btn.nextSibling);
+      btn.textContent = "Appuie longuement sur l'image pour l'enregistrer";
+      setTimeout(function(){ btn.textContent = label; }, 6000);
+    }, "image/png");
+  }
+
   // pic: {url, blob} of the attached drawing, or null. saved: true when reopening a stored project.
   function renderReply(reply, picks, pic, saved){
     var m = bubble("bot" + (picks.length ? " wide" : ""), reply);
@@ -1434,6 +1483,9 @@ canvas.preview{width:100%;height:auto;border-radius:12px;display:block}
     var big = document.createElement("button"); big.type = "button"; big.className = "ghost"; big.textContent = "Voir de près, un par un";
     big.addEventListener("click", function(){ showOnPhoto(items, 0); });
     m.appendChild(big);
+    var shr = document.createElement("button"); shr.type = "button"; shr.className = "ghost"; shr.textContent = "Partager en image";
+    shr.addEventListener("click", function(){ sharePalette(lastAsk || "Palette", picks, shr); });
+    m.appendChild(shr);
     if (saved) return;
     // keep this suggestion (and the drawing, if any) under a name
     var keep = document.createElement("form"); keep.className = "search keep";
@@ -1519,7 +1571,15 @@ canvas.preview{width:100%;height:auto;border-radius:12px;display:block}
         if (del.textContent === "Supprimer"){ del.textContent = "Confirmer ?"; return; }
         savePals(loadPals().filter(function(x){ return x.id !== p.id; })); if (p.pic) dropBlob("proj:" + p.id); showPals();
       });
-      head.appendChild(t); head.appendChild(del); row.appendChild(head);
+      var shr = document.createElement("button"); shr.type = "button"; shr.className = "ghost"; shr.textContent = "Partager";
+      shr.addEventListener("click", function(e){
+        e.stopPropagation();
+        var roles = {}; (p.picks || []).forEach(function(x){ roles[canon(x.code)] = x.role || ""; });
+        var pk = items.map(function(it){ return { item: it, role: roles[it.code] || "" }; });
+        if (pk.length) sharePalette(p.name, pk, shr);
+      });
+      var acts = document.createElement("div"); acts.className = "row"; acts.appendChild(shr); acts.appendChild(del);
+      head.appendChild(t); head.appendChild(acts); row.appendChild(head);
       var sw = document.createElement("div"); sw.className = "sw", items = [];
       p.codes.forEach(function(c){
         var it = byAny(c), sp = document.createElement("span"), d = document.createElement("i");
