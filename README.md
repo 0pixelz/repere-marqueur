@@ -6,8 +6,12 @@ Tape un code de couleur (ex. `BV312`) ou un nom (ex. `Cerulean`) : l'app encercl
 
 1. La photo est découpée en 12 zones qui se chevauchent, pour que les étiquettes soient assez grosses à lire.
 2. Chaque zone est envoyée à l'API Claude (vision), qui renvoie les codes lus et leur position.
-3. Le résultat est gardé dans le navigateur : l'analyse se fait une seule fois par photo, la recherche est ensuite instantanée.
+3. Le résultat est gardé sur l'appareil : l'analyse se fait une seule fois par photo, la recherche est ensuite instantanée.
 4. Si un code n'a pas été lu, le bouton « Chercher directement sur la photo » relance une recherche ciblée sur ce code.
+
+## Première ouverture
+
+L'app demande une photo de la trousse (appareil photo ou photothèque), puis l'analyse toute seule. La photo et les codes lus restent sur l'appareil de chaque personne (IndexedDB et localStorage) : il n'y a ni compte ni photo partagée.
 
 ## Onglets
 
@@ -21,7 +25,6 @@ Sur iPhone : Safari → Partager → « Sur l'écran d'accueil » pour l'ouvrir 
 
 - `index.html` : toute l'interface (aucune dépendance, aucun build).
 - `api/claude.js` : fonction serverless Vercel qui appelle l'API Claude. La clé reste côté serveur.
-- `trousse.jpg` : photo par défaut.
 - `manifest.json`, `icon-*.png` : installation sur l'écran d'accueil.
 
 ## Déploiement sur Vercel

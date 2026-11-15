@@ -76,6 +76,13 @@ button:focus-visible,.filebtn:focus-within,input:focus-visible,textarea:focus-vi
 .ring i{position:absolute;left:50%;top:-4px;transform:translate(-50%,-100%);font:700 11px/1 var(--body);font-style:normal;background:var(--ring);color:#fff;border-radius:999px;padding:3px 6px}
 .ring.sel{animation:pulse 1.2s ease-out infinite}
 @keyframes pulse{0%{box-shadow:0 0 0 2px #fff,0 0 0 2px #fff inset,0 0 0 0 rgba(229,20,27,.7)}100%{box-shadow:0 0 0 2px #fff,0 0 0 2px #fff inset,0 0 0 22px rgba(229,20,27,0)}}
+/* first launch */
+.welcome{gap:14px;padding:20px 16px}
+.welcome h2{font-size:22px;font-weight:800;line-height:1.15;text-wrap:balance}
+.tips{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:6px;color:var(--muted)}
+.filebtn.solid{background:var(--accent);color:var(--accent-ink)}
+.welcome .filebtn{justify-content:center;min-height:52px;font-size:16px}
+.thumb{width:100%;max-height:180px;object-fit:cover;border-radius:12px;display:block;background:var(--line)}
 /* assistant chat */
 .chat{display:flex;flex-direction:column;gap:10px}
 .msg{max-width:92%;padding:11px 14px;border-radius:18px;display:flex;flex-direction:column;gap:10px;overflow-wrap:anywhere}
@@ -118,6 +125,22 @@ button:focus-visible,.filebtn:focus-within,input:focus-visible,textarea:focus-vi
 </header>
 
 <main>
+  <!-- ============ Accueil (première ouverture) ============ -->
+  <div class="view" id="view-accueil" hidden>
+    <section class="card welcome" aria-label="Bienvenue">
+      <h2>Commence par une photo de ta trousse</h2>
+      <p>L'app lit le code de chaque marqueur sur ta photo. Ensuite, tu tapes un code et elle t'encercle le bon marqueur en rouge.</p>
+      <ol class="tips">
+        <li>Ouvre la trousse, capuchons vers toi.</li>
+        <li>Place-toi au-dessus, pour voir toutes les étiquettes.</li>
+        <li>Pas de flash : une lumière douce évite les reflets.</li>
+      </ol>
+      <label class="filebtn solid">Prendre la photo<input id="cam0" type="file" accept="image/*" capture="environment"></label>
+      <label class="filebtn">Choisir dans mes photos<input id="lib0" type="file" accept="image/*"></label>
+      <p class="status" id="hello" role="status">Ta photo reste sur cet appareil.</p>
+    </section>
+  </div>
+
   <!-- ============ Trouver ============ -->
   <div class="view" id="view-trouver">
     <section class="card" aria-label="Recherche">
@@ -144,7 +167,7 @@ button:focus-visible,.filebtn:focus-within,input:focus-visible,textarea:focus-vi
 
     <section class="card" aria-label="Photo complète">
       <h2>Toute la trousse</h2>
-      <div class="stage" id="stage"><img id="photo" src="trousse.jpg" alt="Photo de la trousse de marqueurs vue du dessus"></div>
+      <div class="stage" id="stage"><img id="photo" alt="Photo de la trousse de marqueurs vue du dessus"></div>
     </section>
   </div>
 
@@ -173,9 +196,11 @@ button:focus-visible,.filebtn:focus-within,input:focus-visible,textarea:focus-vi
       <h2>Ma photo</h2>
       <p class="status" id="scanstatus" role="status"></p>
       <div class="bar" id="bar2" hidden><i id="barfill2"></i></div>
+      <img id="thumb" class="thumb" alt="Ta photo actuelle">
+      <button id="scan" type="button">Analyser la photo</button>
       <div class="row">
-        <button id="scan" type="button">Analyser la photo</button>
-        <label class="filebtn">Changer de photo<input id="file" type="file" accept="image/*"></label>
+        <label class="filebtn">Reprendre la photo<input id="cam1" type="file" accept="image/*" capture="environment"></label>
+        <label class="filebtn">Choisir une photo<input id="lib1" type="file" accept="image/*"></label>
       </div>
     </section>
     <section class="card" id="todo" hidden aria-label="Capuchons non lus">
@@ -190,7 +215,7 @@ button:focus-visible,.filebtn:focus-within,input:focus-visible,textarea:focus-vi
   </div>
 </main>
 
-<nav class="tabs" role="tablist" aria-label="Sections">
+<nav class="tabs" id="tabs" role="tablist" aria-label="Sections">
   <button role="tab" data-view="trouver" aria-selected="true">
     <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.5-4.5"/></svg>Trouver
   </button>
@@ -206,7 +231,8 @@ button:focus-visible,.filebtn:focus-within,input:focus-visible,textarea:focus-vi
 (function(){
   "use strict";
   var $ = function(id){ return document.getElementById(id); };
-  var photo = { img: $("photo"), key: "defaut", ready: false };
+  var photo = { img: $("photo"), key: "moi", ready: false };
+  var autoScan = false;   // true right after a new photo: analyse it without asking
   var index = [];      // {code, name, x, y, hex} — x,y in 0..1 of the whole photo
   var unread = [];     // {x, y, unread:true} — caps seen on the photo whose code could not be read
   var hits = [], sel = 0, busy = false, lastQuery = "", numbered = false;
@@ -221,7 +247,8 @@ button:focus-visible,.filebtn:focus-within,input:focus-visible,textarea:focus-vi
     });
   }
   function go(view){
-    ["trouver", "idees", "trousse"].forEach(function(v){ $("view-" + v).hidden = v !== view; });
+    ["accueil", "trouver", "idees", "trousse"].forEach(function(v){ $("view-" + v).hidden = v !== view; });
+    $("tabs").hidden = view === "accueil";
     Array.prototype.forEach.call(document.querySelectorAll(".tabs button"), function(b){
       b.setAttribute("aria-selected", b.getAttribute("data-view") === view ? "true" : "false");
     });
@@ -248,6 +275,56 @@ button:focus-visible,.filebtn:focus-within,input:focus-visible,textarea:focus-vi
     return prev[n];
   }
   function byCode(code){ var c = canon(code); for (var i = 0; i < index.length; i++) if (index[i].code === c) return index[i]; return null; }
+
+  /* ---- the user's own photo, kept on this device (IndexedDB) ---- */
+  function store(mode, fn){
+    return new Promise(function(resolve, reject){
+      try {
+        var open = indexedDB.open("repere", 1);
+        open.onupgradeneeded = function(){ open.result.createObjectStore("kv"); };
+        open.onerror = function(){ reject(open.error); };
+        open.onsuccess = function(){
+          var tx = open.result.transaction("kv", mode), req = fn(tx.objectStore("kv"));
+          tx.oncomplete = function(){ resolve(req && req.result); };
+          tx.onerror = tx.onabort = function(){ reject(tx.error); };
+        };
+      } catch (e) { reject(e); }
+    });
+  }
+  function savePhoto(blob){ return store("readwrite", function(s){ return s.put(blob, "photo"); }).catch(function(){ return null; }); }
+  function loadPhoto(){ return store("readonly", function(s){ return s.get("photo"); }).catch(function(){ return null; }); }
+  // resize to a size that is sharp enough to read labels and light enough to keep
+  function prepare(file){
+    return new Promise(function(resolve, reject){
+      var url = URL.createObjectURL(file), im = new Image();
+      im.onload = function(){
+        var k = Math.min(1, 2600 / Math.max(im.naturalWidth, im.naturalHeight));
+        var cv = document.createElement("canvas");
+        cv.width = Math.round(im.naturalWidth * k); cv.height = Math.round(im.naturalHeight * k);
+        cv.getContext("2d").drawImage(im, 0, 0, cv.width, cv.height);
+        URL.revokeObjectURL(url);
+        cv.toBlob(function(b){ b ? resolve(b) : reject(new Error("image")); }, "image/jpeg", 0.9);
+      };
+      im.onerror = function(){ URL.revokeObjectURL(url); reject(new Error("image")); };
+      im.src = url;
+    });
+  }
+  function show(blob){ var u = URL.createObjectURL(blob); photo.ready = false; photo.img.src = u; $("thumb").src = u; }
+  async function newPhoto(input){
+    var f = input.files && input.files[0]; input.value = "";
+    if (!f || busy) return;
+    $("hello").textContent = "Préparation de la photo…";
+    try {
+      var blob = await prepare(f);
+      await savePhoto(blob);
+      try { localStorage.removeItem("repere:" + photo.key); } catch (e) {}
+      lastQuery = ""; $("q").value = ""; $("chips").hidden = true; $("deep").hidden = true; chat = [];
+      autoScan = true; show(blob);
+    } catch (e) {
+      $("hello").textContent = "Cette image ne peut pas être ouverte. Essaie une autre photo.";
+      say("Cette image ne peut pas être ouverte. Essaie une autre photo.", true);
+    }
+  }
 
   /* ---- cache of the scan, per photo, in this browser only ---- */
   function loadCache(){
@@ -350,8 +427,9 @@ button:focus-visible,.filebtn:focus-within,input:focus-visible,textarea:focus-vi
     return "La demande a échoué" + (e && e.message ? " (" + String(e.message).slice(0, 120) + ")" : "") + ". Relance dans un instant.";
   }
 
-  async function scan(){
+  async function scan(first){
     if (busy || !ready()) return;
+    first = first === true;
     busy = true; lock(true);
     var tiles = makeTiles(), done = 0, best = {}, unk = [], failed = 0, stop = null;
     say("Lecture des étiquettes : 0 / " + tiles.length + " zones");
@@ -391,6 +469,7 @@ button:focus-visible,.filebtn:focus-within,input:focus-visible,textarea:focus-vi
       unread.push({ x: u.x, y: u.y, unread: true });
     });
     index = list; fillColours(); saveCache(); refresh();
+    if (first) go(unread.length ? "trousse" : "trouver");
     say(list.length + " codes repérés" + (unread.length ? ", " + unread.length + " capuchons non lus (voir l'onglet Trousse)" : "") +
       (failed || stop ? ". Certaines zones n'ont pas pu être analysées." : "."), !!(failed || stop));
     if (lastQuery) search(lastQuery);
@@ -622,10 +701,12 @@ button:focus-visible,.filebtn:focus-within,input:focus-visible,textarea:focus-vi
     if (!photo.ready){ say("La photo n'est pas encore chargée.", true); return false; }
     return true;
   }
-  function lock(on){ $("scan").disabled = on; $("deep").disabled = on; $("file").disabled = on; $("askgo").disabled = on; }
+  function lock(on){ ["scan", "deep", "cam1", "lib1", "askgo"].forEach(function(id){ $(id).disabled = on; }); }
   function photoLoaded(){
     photo.ready = true; loadCache(); fillColours(); refresh(); hits = []; draw();
-    say(index.length ? index.length + " codes repérés" + (unread.length ? ", " + unread.length + " non lus (onglet Trousse)" : "") + ". Tape un code pour le trouver." : "Première étape : onglet Trousse, puis Analyser la photo (environ une minute, une seule fois par photo).");
+    if (autoScan){ autoScan = false; go("trousse"); scan(true); return; }
+    say(index.length ? index.length + " codes repérés" + (unread.length ? ", " + unread.length + " non lus (onglet Trousse)" : "") + ". Tape un code pour le trouver." :
+      "Ta photo n'est pas encore analysée : onglet Trousse, puis Analyser la photo.");
   }
 
   /* ---- wiring ---- */
@@ -633,7 +714,8 @@ button:focus-visible,.filebtn:focus-within,input:focus-visible,textarea:focus-vi
     b.addEventListener("click", function(){ go(b.getAttribute("data-view")); });
   });
   $("form").addEventListener("submit", function(e){ e.preventDefault(); search($("q").value); $("q").blur(); });
-  $("scan").addEventListener("click", scan);
+  $("scan").addEventListener("click", function(){ scan(false); });
+  ["cam0", "lib0", "cam1", "lib1"].forEach(function(id){ $(id).addEventListener("change", function(){ newPhoto(this); }); });
   $("deep").addEventListener("click", deepSearch);
   $("todogo").addEventListener("click", function(){ showUnread(0); });
   $("fixbox").addEventListener("submit", function(e){ e.preventDefault(); fixSave(); });
@@ -648,15 +730,10 @@ button:focus-visible,.filebtn:focus-within,input:focus-visible,textarea:focus-vi
     var h = hits[sel]; if (!h) return;
     go("idees"); sendChat("Fais-moi un fade à partir de " + h.code + (h.name ? " (" + h.name + ")" : ""));
   });
-  $("file").addEventListener("change", function(){
-    var f = this.files && this.files[0]; if (!f) return;
-    photo.ready = false; photo.key = f.name + ":" + f.size; lastQuery = ""; $("q").value = "";
-    $("chips").hidden = true; $("deep").hidden = true; chat = [];
-    photo.img.src = URL.createObjectURL(f);
-  });
   photo.img.addEventListener("load", photoLoaded);
   photo.img.addEventListener("error", function(){ say("Cette image ne peut pas être ouverte. Choisis une photo JPEG ou PNG.", true); });
-  if (photo.img.complete && photo.img.naturalWidth) photoLoaded();
+  // first launch: no photo yet, so ask for one; otherwise reopen the user's own photo
+  loadPhoto().then(function(blob){ if (blob) { go("trouver"); show(blob); } else go("accueil"); });
 })();
 </script>
 </body>
