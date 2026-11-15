@@ -108,6 +108,11 @@ a{color:var(--ink);font-weight:700}
 .sw .me .dot{outline:3px solid var(--ring);outline-offset:1px}
 ul.tips{list-style:disc}
 .tips b{color:var(--ink)}
+.grid button.off{opacity:.45;text-decoration:line-through}
+.palhead{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.palhead button{min-height:0;padding:6px 12px;font-size:13px}
+.keep input{font:400 15px var(--body);text-transform:none;letter-spacing:0;padding:10px 14px}
+.keep button{min-height:0;padding:10px 14px}
 /* first launch */
 .welcome{gap:14px;padding:20px 16px}
 .welcome h2{font-size:24px;font-weight:700;line-height:1.15;text-wrap:balance}
@@ -227,6 +232,7 @@ ul.tips{list-style:disc}
       </form>
       <button id="fixskip" type="button" class="ghost" hidden>Ce n'est pas un marqueur</button>
       <button id="blend" type="button" class="ghost">Quoi utiliser avec cette couleur ?</button>
+      <button id="emptybtn" type="button" class="ghost">Marquer comme vide</button>
     </section>
 
     <section class="card" aria-label="Photo complète">
@@ -325,8 +331,17 @@ ul.tips{list-style:disc}
     </section>
     <section class="card" id="todo" hidden aria-label="Capuchons non lus">
       <h2 id="todotitle"></h2>
-      <p class="status">Reflet, flou ou étiquette effacée. Regarde le vrai marqueur et tape son code pour l'ajouter.</p>
+      <p class="status">Code illisible (reflet, flou) ou absent de la liste Ohuhu. Regarde le vrai marqueur et tape son code.</p>
       <button id="todogo" type="button">Les compléter</button>
+    </section>
+    <section class="card" id="buy" hidden aria-label="Marqueurs à racheter">
+      <h2>À racheter</h2>
+      <p id="buylist"></p>
+      <button id="buycopy" type="button" class="ghost">Copier la liste</button>
+    </section>
+    <section class="card" id="palcard" hidden aria-label="Mes palettes">
+      <h2>Mes palettes</h2>
+      <div class="frows" id="pals"></div>
     </section>
     <section class="card" id="invcard" hidden aria-label="Mes couleurs">
       <h2>Mes couleurs</h2>
@@ -350,6 +365,7 @@ ul.tips{list-style:disc}
   </button>
 </nav>
 
+<script src="ohuhu-codes.js"></script>
 <script>
 (function(){
   "use strict";
@@ -423,6 +439,22 @@ ul.tips{list-style:disc}
     }
     return prev[n];
   }
+  /* ---- official colour list: used to catch codes misread on the photo ---- */
+  var OFF = {}, OFFNAME = {};
+  function norm(t){ return String(t || "").toLowerCase().replace(/[^a-z]/g, ""); }
+  String(window.OHUHU_CODES || "").split(";").forEach(function(p){
+    var a = p.split("|"); if (a[0]){ OFF[a[0]] = a[1] || ""; if (a[1]) OFFNAME[norm(a[1])] = a[0]; }
+  });
+  var hasList = Object.keys(OFF).length > 50;
+  // a read code + name → the code to keep; doubt:true when it is not in the official list
+  function check(code, name){
+    if (!hasList) return { code: code, name: name };
+    var byName = OFFNAME[norm(name)];
+    if (byName && byName !== code && (OFF[code] === undefined || lev(code, byName) <= 1)) return { code: byName, name: OFF[byName] };
+    if (OFF[code] !== undefined) return { code: code, name: name || OFF[code] };
+    return { code: code, name: name, doubt: true };
+  }
+
   /* ---- reading a code: family letters, saturation digit, brightness digits ---- */
   var FAM = {
     Y: ["jaune", 52], YR: ["jaune-rouge, les orangés", 28], R: ["rouge", 2], RV: ["rouge-violet, les roses", 330], V: ["violet", 280],
@@ -444,7 +476,7 @@ ul.tips{list-style:disc}
   function groups(){
     var g = {};
     index.forEach(function(it){
-      var d = decode(it.code); if (!d || d.special) return;
+      var d = decode(it.code); if (!d || d.special || it.empty) return;
       var k = d.fam + "|" + d.sat;
       (g[k] = g[k] || { fam: d.fam, sat: d.sat, items: [] }).items.push({ it: it, bri: d.bri });
     });
@@ -492,7 +524,8 @@ ul.tips{list-style:disc}
     var dot = document.createElement("i"); dot.className = "dot"; dot.style.background = it.hex || "transparent";
     var txt = document.createElement("div"), b = document.createElement("b"), sp = document.createElement("span");
     b.textContent = it.code;
-    sp.textContent = exact ? (it.name ? it.name + " · dans ta trousse" : "Dans ta trousse") : "Tu n'as pas " + d.code + ". C'est ton marqueur le plus proche.";
+    sp.textContent = exact ? (it.name ? it.name + " · dans ta trousse" : "Dans ta trousse") + (it.empty ? " · vide" : "") :
+      (OFF[d.code] ? d.code + " (" + OFF[d.code] + ") existe, mais tu ne l'as pas." : hasList ? d.code + " n'existe pas dans la gamme." : "Tu n'as pas " + d.code + ".") + " Voici ton plus proche.";
     txt.appendChild(b); txt.appendChild(sp);
     var go2 = document.createElement("button"); go2.type = "button"; go2.textContent = "Le trouver";
     go2.addEventListener("click", function(){ showOnPhoto([it], 0); });
@@ -721,8 +754,15 @@ ul.tips{list-style:disc}
             if (edge > 60) unk.push({ edge: edge, x: (t.x + x / 1000 * t.w) / W, y: (t.y + y / 1000 * t.h) / H });
             return;
           }
-          if (!code || (best[code] && best[code].edge >= edge)) return;
-          best[code] = { code: code, name: String(it.name || "").slice(0, 40), edge: edge,
+          if (!code) return;
+          var ck = check(code, String(it.name || "").slice(0, 40));
+          if (ck.doubt){
+            if (edge > 60) unk.push({ edge: edge, guess: code, x: (t.x + x / 1000 * t.w) / W, y: (t.y + y / 1000 * t.h) / H });
+            return;
+          }
+          code = ck.code;
+          if (best[code] && best[code].edge >= edge) return;
+          best[code] = { code: code, name: ck.name, edge: edge,
             x: (t.x + x / 1000 * t.w) / W, y: (t.y + y / 1000 * t.h) / H };
         });
       } catch (e) {
@@ -739,11 +779,13 @@ ul.tips{list-style:disc}
     unread = [];
     unk.sort(function(a, b){ return b.edge - a.edge; }).forEach(function(u){
       if (list.some(function(i){ return near(i, u); }) || unread.some(function(i){ return near(i, u); })) return;
-      unread.push({ x: u.x, y: u.y, unread: true });
+      unread.push({ x: u.x, y: u.y, unread: true, guess: u.guess || "" });
     });
+    var wasEmpty = {}; index.forEach(function(i){ if (i.empty) wasEmpty[i.code] = true; });
+    list.forEach(function(i){ if (wasEmpty[i.code]) i.empty = true; });
     index = list; fillColours(); saveCache(); refresh();
     if (first) go(unread.length ? "trousse" : "trouver");
-    say(list.length + " codes repérés" + (unread.length ? ", " + unread.length + " capuchons non lus (voir l'onglet Trousse)" : "") +
+    say(list.length + " codes repérés" + (unread.length ? ", " + unread.length + " à vérifier (voir l'onglet Trousse)" : "") +
       (failed || stop ? ". Certaines zones n'ont pas pu être analysées." : "."), !!(failed || stop));
     if (lastQuery) search(lastQuery);
   }
@@ -796,7 +838,8 @@ ul.tips{list-style:disc}
       if (hits.length > 1) chipList(hits.map(function(h){ return h.code; }), true);
     } else {
       var near = index.filter(function(i){ return lev(i.code, q) <= 1; }).slice(0, 8);
-      say(q + " n'est pas dans les codes lus." + (near.length ? " Codes proches :" : ""), true);
+      say(q + (OFF[q] ? " (" + OFF[q] + ") existe chez Ohuhu, mais n'a pas été lu sur ta photo." : hasList ? " n'est pas un code de la gamme Honolulu 320." : " n'est pas dans les codes lus.") +
+        (near.length ? " Codes proches dans ta trousse :" : ""), true);
       if (near.length) chipList(near.map(function(h){ return h.code; }), false);
       $("deep").hidden = false;
     }
@@ -832,7 +875,10 @@ ul.tips{list-style:disc}
     if (!h || !photo.ready) return;
     var un = !!h.unread;
     $("hitcode").textContent = un ? "Non lu" : h.code;
-    $("hitname").textContent = un ? "Tape le code que tu lis sur le vrai marqueur" : (h.name || "");
+    $("hitname").textContent = un ? (h.guess ? "Lu « " + h.guess + " », absent de la liste Ohuhu. Corrige-le ou confirme-le." : "Tape le code que tu lis sur le vrai marqueur")
+      : (h.name || "") + (h.empty ? " · vide" : "");
+    if (un && document.activeElement !== $("fixcode")) $("fixcode").value = h.guess || "";
+    $("emptybtn").hidden = un; $("emptybtn").textContent = h.empty ? "Il n'est plus vide" : "Marquer comme vide";
     $("fixbox").hidden = !un; $("fixskip").hidden = !un; $("blend").hidden = un;
     var dc = un ? null : decode(h.code);
     $("hitinfo").textContent = !dc ? "" : dc.special ? dc.special :
@@ -853,6 +899,7 @@ ul.tips{list-style:disc}
 
   /* ---- Assistant: a conversation; Claude picks colours among the markers of the case ---- */
   var chat = [];   // {role, content} sent back to the server as history
+  var lastAsk = "";     // last question, used as the default name of a saved palette
   var drawing = null;   // the user's drawing (Blob), sent with each message while attached
   async function attach(input){
     var f = input.files && input.files[0]; input.value = "";
@@ -882,12 +929,12 @@ ul.tips{list-style:disc}
       bubble("bot warn", "Je dois d'abord connaître tes couleurs : va dans l'onglet Trousse et appuie sur Analyser la photo.");
       toBottom(); return;
     }
-    busy = true; $("askgo").disabled = true;
+    busy = true; $("askgo").disabled = true; lastAsk = text;
     chat.push({ role: "user", content: text });
     var waitMsg = bubble("bot wait", "Je regarde dans ta trousse…"); toBottom();
     try {
       var raw = await call({ mode: "chat", messages: chat.slice(-12), image: drawing ? await toBase64(drawing) : "",
-        palette: index.map(function(i){ return { code: i.code, name: i.name, hex: i.hex || "" }; }) });
+        palette: index.filter(function(i){ return !i.empty; }).map(function(i){ return { code: i.code, name: i.name, hex: i.hex || "" }; }) });
       var o = parseJson(raw, "{", "}") || { reponse: raw };
       var picks = (Array.isArray(o.marqueurs) ? o.marqueurs : []).map(function(m){
         var it = byCode(m && m.code);
@@ -938,6 +985,19 @@ ul.tips{list-style:disc}
     var big = document.createElement("button"); big.type = "button"; big.className = "ghost"; big.textContent = "Voir de près, un par un";
     big.addEventListener("click", function(){ showOnPhoto(items, 0); });
     m.appendChild(big);
+    // keep this suggestion under a name
+    var keep = document.createElement("form"); keep.className = "search keep";
+    var nm = document.createElement("input"); nm.type = "text"; nm.maxLength = 40; nm.value = lastAsk.slice(0, 40); nm.setAttribute("aria-label", "Nom de la palette");
+    var ok = document.createElement("button"); ok.type = "submit"; ok.className = "ghost"; ok.textContent = "Enregistrer";
+    keep.appendChild(nm); keep.appendChild(ok);
+    keep.addEventListener("submit", function(e){
+      e.preventDefault();
+      var list = loadPals();
+      list.unshift({ id: Date.now(), name: nm.value.trim() || "Palette", codes: items.map(function(i){ return i.code; }) });
+      savePals(list.slice(0, 60)); showPals();
+      keep.innerHTML = ""; var done = document.createElement("p"); done.className = "status"; done.textContent = "Palette enregistrée. Tu la retrouves dans l'onglet Trousse."; keep.appendChild(done);
+    });
+    m.appendChild(keep);
   }
   function showOnPhoto(items, i){
     hits = items.slice(); sel = i || 0; numbered = true; lastQuery = "";
@@ -950,9 +1010,9 @@ ul.tips{list-style:disc}
   /* ---- caps the scan saw but could not read: the user types the code ---- */
   function showUnread(i){
     hits = unread.slice(); sel = Math.max(0, Math.min(i || 0, hits.length - 1)); numbered = true; lastQuery = "";
-    $("q").value = ""; $("deep").hidden = true; $("fixcode").value = "";
-    chipList(hits.map(function(){ return "?"; }), true);
-    say(hits.length + (hits.length > 1 ? " capuchons non lus." : " capuchon non lu.") + " Tape le code du marqueur encerclé.");
+    $("q").value = ""; $("deep").hidden = true; $("fixcode").value = hits[sel] ? hits[sel].guess || "" : "";
+    chipList(hits.map(function(h){ return h.guess ? h.guess + " ?" : "?"; }), true);
+    say(hits.length + (hits.length > 1 ? " capuchons à vérifier." : " capuchon à vérifier.") + " Tape le code du marqueur encerclé.");
     go("trouver");
   }
   function closeUnread(h){
@@ -966,8 +1026,37 @@ ul.tips{list-style:disc}
     var c = canon($("fixcode").value);
     if (!c){ say("Tape le code écrit sur le marqueur, par exemple E85.", true); return; }
     index = index.filter(function(i){ return i.code !== c; });
-    var it = { code: c, name: "", x: h.x, y: h.y }; it.hex = capHex(it); index.push(it);
+    var it = { code: c, name: OFF[c] || "", x: h.x, y: h.y }; it.hex = capHex(it); index.push(it);
     $("fixcode").blur(); closeUnread(h);
+  }
+
+  /* ---- saved palettes (kept on this device) ---- */
+  function loadPals(){ try { return JSON.parse(localStorage.getItem("repere:palettes") || "[]"); } catch (e) { return []; } }
+  function savePals(list){ try { localStorage.setItem("repere:palettes", JSON.stringify(list)); } catch (e) {} }
+  function showPals(){
+    var list = loadPals(), box = $("pals"); box.innerHTML = ""; $("palcard").hidden = !list.length;
+    list.forEach(function(p){
+      var row = document.createElement("div"); row.className = "frow";
+      var head = document.createElement("div"); head.className = "palhead";
+      var t = document.createElement("strong"); t.textContent = p.name;
+      var del = document.createElement("button"); del.type = "button"; del.className = "ghost"; del.textContent = "Supprimer";
+      del.addEventListener("click", function(e){
+        e.stopPropagation();
+        if (del.textContent === "Supprimer"){ del.textContent = "Confirmer ?"; return; }
+        savePals(loadPals().filter(function(x){ return x.id !== p.id; })); showPals();
+      });
+      head.appendChild(t); head.appendChild(del); row.appendChild(head);
+      var sw = document.createElement("div"); sw.className = "sw", items = [];
+      p.codes.forEach(function(c){
+        var it = byCode(c), sp = document.createElement("span"), d = document.createElement("i");
+        d.className = "dot"; d.style.background = it && it.hex ? it.hex : "transparent";
+        if (it) items.push(it); else sp.style.opacity = ".45";
+        sp.appendChild(d); sp.appendChild(document.createTextNode(c)); sw.appendChild(sp);
+      });
+      row.appendChild(sw);
+      row.addEventListener("click", function(){ if (items.length) showOnPhoto(items, 0); });
+      box.appendChild(row);
+    });
   }
 
   /* ---- Trousse: inventory ---- */
@@ -976,11 +1065,14 @@ ul.tips{list-style:disc}
     $("scan").className = index.length ? "ghost" : "";
     $("count").textContent = index.length ? index.length + " couleurs" + (unread.length ? " · " + unread.length + " non lus" : "") : "";
     $("todo").hidden = !unread.length;
-    $("todotitle").textContent = unread.length + (unread.length > 1 ? " capuchons non lus" : " capuchon non lu");
-    showFades(); showDecode($("dec").value);
+    $("todotitle").textContent = unread.length + (unread.length > 1 ? " capuchons à vérifier" : " capuchon à vérifier");
+    showFades(); showDecode($("dec").value); showPals();
+    var gone = index.filter(function(i){ return i.empty; }).sort(function(a, b){ return a.code < b.code ? -1 : 1; });
+    $("buy").hidden = !gone.length;
+    $("buylist").textContent = gone.map(function(i){ return i.code + (i.name ? " " + i.name : ""); }).join(" · ");
     var box = $("inv"); box.innerHTML = ""; $("invcard").hidden = !index.length;
     index.slice().sort(function(a, b){ return a.code < b.code ? -1 : 1; }).forEach(function(it){
-      var b = document.createElement("button"); b.type = "button"; b.title = it.name;
+      var b = document.createElement("button"); b.type = "button"; b.title = it.name; if (it.empty) b.className = "off";
       var d = document.createElement("span"); d.className = "dot"; d.style.background = it.hex || "transparent";
       b.appendChild(d); b.appendChild(document.createTextNode(it.code));
       b.addEventListener("click", function(){ $("q").value = it.code; search(it.code); go("trouver"); });
@@ -1007,6 +1099,16 @@ ul.tips{list-style:disc}
   $("scan").addEventListener("click", function(){ scan(false); });
   ["cam0", "lib0", "cam1", "lib1"].forEach(function(id){ $(id).addEventListener("change", function(){ newPhoto(this); }); });
   $("deep").addEventListener("click", deepSearch);
+  $("emptybtn").addEventListener("click", function(){
+    var h = hits[sel]; if (!h || h.unread) return;
+    h.empty = !h.empty; if (!h.empty) delete h.empty;
+    saveCache(); refresh(); draw();
+  });
+  $("buycopy").addEventListener("click", function(){
+    var b = this, text = "Marqueurs Ohuhu à racheter : " + $("buylist").textContent;
+    try { navigator.clipboard.writeText(text).then(function(){ b.textContent = "Liste copiée"; }, function(){ b.textContent = "Copie impossible ici"; }); }
+    catch (e) { b.textContent = "Copie impossible ici"; }
+  });
   $("decform").addEventListener("submit", function(e){ e.preventDefault(); $("dec").blur(); showDecode($("dec").value); });
   $("todogo").addEventListener("click", function(){ showUnread(0); });
   $("fixbox").addEventListener("submit", function(e){ e.preventDefault(); fixSave(); });
