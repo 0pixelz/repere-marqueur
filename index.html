@@ -82,6 +82,26 @@ button:focus-visible,.filebtn:focus-within,input:focus-visible,textarea:focus-vi
 .ring i{position:absolute;left:50%;top:-4px;transform:translate(-50%,-100%);font:700 11px/1 var(--body);font-style:normal;background:var(--ring);color:#fff;border-radius:999px;padding:3px 6px}
 .ring.sel{animation:pulse 1.2s ease-out infinite}
 @keyframes pulse{0%{box-shadow:0 0 0 2px #fff,0 0 0 2px #fff inset,0 0 0 0 rgba(229,20,27,.7)}100%{box-shadow:0 0 0 2px #fff,0 0 0 2px #fff inset,0 0 0 22px rgba(229,20,27,0)}}
+/* guide */
+a{color:var(--ink);font-weight:700}
+.decout{display:flex;flex-direction:column;gap:12px}
+.split{display:flex;gap:6px;align-items:stretch}
+.split div{flex:1;border:1.5px solid var(--stroke);border-radius:12px;padding:8px 6px;text-align:center;background:var(--paper)}
+.split b{display:block;font:500 28px var(--mono)}
+.split span{font-size:12px;color:var(--muted)}
+.scale{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:3px}
+.scale i{height:20px;border-radius:5px;border:1px solid var(--line)}
+.scale i.on{outline:3px solid var(--ring);outline-offset:1px}
+.legend{display:flex;justify-content:space-between;font-size:12px;color:var(--muted)}
+.frows{display:flex;flex-direction:column;gap:8px}
+.frow{display:flex;flex-direction:column;gap:8px;padding:10px;border:1.5px solid var(--line);border-radius:12px;background:var(--paper);cursor:pointer}
+.frow strong{font:600 14px var(--display)}
+.sw{display:flex;gap:8px;flex-wrap:wrap}
+.sw span{display:flex;flex-direction:column;align-items:center;gap:3px;font:500 11px var(--mono)}
+.sw .dot{width:28px;height:28px}
+.sw .me .dot{outline:3px solid var(--ring);outline-offset:1px}
+ul.tips{list-style:disc}
+.tips b{color:var(--ink)}
 /* first launch */
 .welcome{gap:14px;padding:20px 16px}
 .welcome h2{font-size:24px;font-weight:700;line-height:1.15;text-wrap:balance}
@@ -183,6 +203,7 @@ button:focus-visible,.filebtn:focus-within,input:focus-visible,textarea:focus-vi
 
     <section class="card" id="hitcard" hidden aria-label="Résultat">
       <div class="found"><span class="dot" id="hitdot"></span><b id="hitcode"></b><span id="hitname"></span></div>
+      <p class="status" id="hitinfo"></p>
       <canvas id="zoom" width="720" height="720"></canvas>
       <form class="search" id="fixbox" hidden>
         <input id="fixcode" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="Code du vrai marqueur" aria-label="Code lu sur le marqueur">
@@ -217,6 +238,51 @@ button:focus-visible,.filebtn:focus-within,input:focus-visible,textarea:focus-vi
     </form>
   </div>
 
+  <!-- ============ Guide ============ -->
+  <div class="view" id="view-guide" hidden>
+    <section class="card" aria-label="Lire un code">
+      <h2>Lire un code</h2>
+      <p>Chaque code se lit en trois morceaux : la famille, la saturation, puis la luminosité.</p>
+      <form class="search" id="decform">
+        <input id="dec" type="text" value="YR111" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Code à décoder">
+        <button type="submit">Décoder</button>
+      </form>
+      <div id="decout" class="decout"></div>
+    </section>
+
+    <section class="card" aria-label="Réussir un fade">
+      <h2>Réussir un fade</h2>
+      <ol class="tips">
+        <li><b>Même famille</b> : garde les mêmes lettres (ex. que des B).</li>
+        <li><b>Même saturation</b> : garde le même premier chiffre. Ce sont les couleurs qui se fondent le mieux.</li>
+        <li><b>Trois tons</b> : un clair, un moyen, un foncé, en montant la luminosité de 2 à 4 à la fois.</li>
+        <li><b>Du clair au foncé</b> : pose le clair partout, ajoute le moyen dans les ombres, puis le foncé. Repasse le clair sur les jonctions pour fondre.</li>
+      </ol>
+    </section>
+
+    <section class="card" aria-label="Fades possibles dans ta trousse">
+      <h2>Fades possibles dans ta trousse</h2>
+      <p class="status" id="fadesnote"></p>
+      <div class="frows" id="fades"></div>
+    </section>
+
+    <section class="card" aria-label="Les pointes">
+      <h2>Les deux pointes</h2>
+      <ul class="tips">
+        <li><b>Pinceau</b> : souple, pour ombrer, fondre et superposer.</li>
+        <li><b>Biseau</b> : large, pour remplir une surface d'un trait régulier ; son arête fait aussi des lignes fines.</li>
+        <li><b>Blender 0</b> : sans couleur, il adoucit une jonction ou éclaircit une zone.</li>
+      </ul>
+    </section>
+
+    <section class="card" aria-label="Anciens et nouveaux codes">
+      <h2>Anciens et nouveaux codes</h2>
+      <p>Ohuhu a renuméroté ses marqueurs à alcool : les couleurs n'ont pas changé, seuls les codes ont changé. Sur leurs nuanciers, le gros code est le nouveau et le petit est l'ancien.</p>
+      <p><a href="https://ca.ohuhu.com/pages/color-codes-index" target="_blank" rel="noopener">Convertir un ancien code sur le site d'Ohuhu</a></p>
+      <p><a href="https://ohuhu.com/blogs/news/how-to-read-ohuhu-color-codes-shade-like-a-pro" target="_blank" rel="noopener">L'explication d'Ohuhu sur ses codes</a></p>
+    </section>
+  </div>
+
   <!-- ============ Trousse ============ -->
   <div class="view" id="view-trousse" hidden>
     <section class="card" aria-label="Photo de la trousse">
@@ -249,6 +315,9 @@ button:focus-visible,.filebtn:focus-within,input:focus-visible,textarea:focus-vi
   </button>
   <button role="tab" data-view="idees" aria-selected="false">
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/></svg>Assistant
+  </button>
+  <button role="tab" data-view="guide" aria-selected="false">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5c3-1 5-1 8 1 3-2 5-2 8-1v13c-3-1-5-1-8 1-3-2-5-2-8-1zM12 6v13"/></svg>Guide
   </button>
   <button role="tab" data-view="trousse" aria-selected="false">
     <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="14" rx="3"/><path d="M8 6V4h8v2M3 12h18"/></svg>Trousse
@@ -301,7 +370,7 @@ button:focus-visible,.filebtn:focus-within,input:focus-visible,textarea:focus-vi
     $("scanart").hidden = total === 0;
   }
   function go(view){
-    ["accueil", "trouver", "idees", "trousse"].forEach(function(v){ $("view-" + v).hidden = v !== view; });
+    ["accueil", "trouver", "idees", "guide", "trousse"].forEach(function(v){ $("view-" + v).hidden = v !== view; });
     $("tabs").hidden = view === "accueil";
     Array.prototype.forEach.call(document.querySelectorAll(".tabs button"), function(b){
       b.setAttribute("aria-selected", b.getAttribute("data-view") === view ? "true" : "false");
@@ -328,6 +397,94 @@ button:focus-visible,.filebtn:focus-within,input:focus-visible,textarea:focus-vi
     }
     return prev[n];
   }
+  /* ---- reading a code: family letters, saturation digit, brightness digits ---- */
+  var FAM = {
+    Y: ["jaune", 52], YR: ["jaune-rouge, les orangés", 28], R: ["rouge", 2], RV: ["rouge-violet, les roses", 330], V: ["violet", 280],
+    BV: ["bleu-violet", 250], B: ["bleu", 215], BG: ["bleu-vert", 185], G: ["vert", 140], YG: ["jaune-vert", 85],
+    E: ["terre : bruns et beiges", 28], FY: ["fluo", 55], CG: ["gris froid", -1], WG: ["gris chaud", -1], GG: ["gris", -1],
+    BGY: ["gris bleuté", -1], YGY: ["gris jaunâtre", -1], RGY: ["gris rosé", -1]
+  };
+  function decode(raw){
+    var c = canon(raw);
+    if (c === "0") return { code: c, special: "Blender incolore : il n'a pas de couleur, il sert à fondre et à éclaircir." };
+    if (c === "120") return { code: c, special: "Noir." };
+    var m = /^([A-Z]+)(\d)(\d{1,2})$/.exec(c);
+    if (!m) return null;
+    return { code: c, fam: m[1], sat: +m[2], bri: +m[3], known: !!FAM[m[1]] && +m[3] <= 16 };
+  }
+  function satWord(n){ return n <= 1 ? "teinte pure" : n <= 4 ? "un peu adoucie" : n <= 6 ? "adoucie" : "très grisée"; }
+  function briWord(n){ return n <= 4 ? "clair" : n <= 10 ? "moyen" : "foncé"; }
+  // markers of the case grouped by family + saturation, lightest first
+  function groups(){
+    var g = {};
+    index.forEach(function(it){
+      var d = decode(it.code); if (!d || d.special) return;
+      var k = d.fam + "|" + d.sat;
+      (g[k] = g[k] || { fam: d.fam, sat: d.sat, items: [] }).items.push({ it: it, bri: d.bri });
+    });
+    return Object.keys(g).map(function(k){ g[k].items.sort(function(a, b){ return a.bri - b.bri; }); return g[k]; })
+      .sort(function(a, b){ return a.fam === b.fam ? a.sat - b.sat : (a.fam < b.fam ? -1 : 1); });
+  }
+  function rowEl(g, me){
+    var row = document.createElement("div"); row.className = "frow";
+    var t = document.createElement("strong"); t.textContent = g.fam + " · saturation " + g.sat; row.appendChild(t);
+    var sw = document.createElement("div"); sw.className = "sw";
+    g.items.forEach(function(x){
+      var sp = document.createElement("span"); if (x.it.code === me) sp.className = "me";
+      var d = document.createElement("i"); d.className = "dot"; d.style.background = x.it.hex || "transparent";
+      sp.appendChild(d); sp.appendChild(document.createTextNode(x.it.code)); sw.appendChild(sp);
+    });
+    row.appendChild(sw);
+    var items = g.items.map(function(x){ return x.it; });
+    row.addEventListener("click", function(){ showOnPhoto(items, 0); });
+    return row;
+  }
+  function scale(n, on, colour){
+    var s = document.createElement("div"); s.className = "scale";
+    for (var i = 0; i < n; i++){ var c = document.createElement("i"); c.style.background = colour(i); if (i === on) c.className = "on"; s.appendChild(c); }
+    return s;
+  }
+  function legend(a, b){ var l = document.createElement("div"); l.className = "legend"; l.innerHTML = "<span></span><span></span>"; l.firstChild.textContent = a; l.lastChild.textContent = b; return l; }
+  function showDecode(raw){
+    var out = $("decout"); out.innerHTML = "";
+    var d = decode(raw), p = document.createElement("p");
+    if (!d){ p.textContent = "Ce code ne ressemble pas à un code de marqueur. Exemple : YR111."; p.className = "status warn"; out.appendChild(p); return; }
+    if (d.special){ p.textContent = d.code + " : " + d.special; out.appendChild(p); return; }
+    var fam = FAM[d.fam], hue = fam ? fam[1] : -1;
+    var split = document.createElement("div"); split.className = "split";
+    [[d.fam, "famille"], [String(d.sat), "saturation"], [String(d.bri), "luminosité"]].forEach(function(x){
+      var b = document.createElement("div"), k = document.createElement("b"), l = document.createElement("span");
+      k.textContent = x[0]; l.textContent = x[1]; b.appendChild(k); b.appendChild(l); split.appendChild(b);
+    });
+    out.appendChild(split);
+    var p1 = document.createElement("p");
+    p1.textContent = "Famille " + d.fam + (fam ? " : " + fam[0] + "." : " : famille que je ne connais pas.");
+    out.appendChild(p1);
+    var p2 = document.createElement("p"); p2.textContent = "Saturation " + d.sat + " sur 9 : " + satWord(d.sat) + ". Les couleurs du même niveau se fondent bien ensemble.";
+    out.appendChild(p2);
+    out.appendChild(scale(10, d.sat, function(i){ return hue < 0 ? "hsl(220 4% 62%)" : "hsl(" + hue + " " + Math.round(92 - i * 9) + "% 58%)"; }));
+    out.appendChild(legend("0 · pure", "9 · grisée"));
+    var p3 = document.createElement("p"); p3.textContent = "Luminosité " + d.bri + " sur 16 : " + briWord(d.bri) + ". Plus le nombre est grand, plus la couleur est foncée.";
+    if (d.bri > 16) p3.textContent = "Luminosité " + d.bri + " : hors de l'échelle habituelle (0 à 16). Vérifie le code.";
+    out.appendChild(p3);
+    out.appendChild(scale(17, d.bri, function(i){ return "hsl(" + (hue < 0 ? 220 : hue) + " " + (hue < 0 ? 4 : 45) + "% " + Math.round(94 - i * 5) + "%)"; }));
+    out.appendChild(legend("0 · clair", "16 · foncé"));
+    var mine = groups().filter(function(g){ return g.fam === d.fam; });
+    if (mine.length){
+      var h = document.createElement("p"); h.className = "status"; h.textContent = "Dans ta trousse, la famille " + d.fam + ", rangée par saturation puis du clair au foncé :";
+      out.appendChild(h);
+      mine.forEach(function(g){ out.appendChild(rowEl(g, d.code)); });
+    }
+  }
+  function showFades(){
+    var box = $("fades"); box.innerHTML = "";
+    var ok = groups().filter(function(g){ return g.items.length >= 3; });
+    $("fadesnote").textContent = !index.length ? "Analyse ta photo pour voir les fades que tes marqueurs permettent." :
+      ok.length ? "Même famille et même saturation, du clair au foncé. Touche une ligne pour voir ces marqueurs sur la photo." :
+      "Aucun groupe de trois marqueurs de même famille et même saturation pour l'instant.";
+    ok.forEach(function(g){ box.appendChild(rowEl(g, "")); });
+  }
+
   function byCode(code){ var c = canon(code); for (var i = 0; i < index.length; i++) if (index[i].code === c) return index[i]; return null; }
 
   /* ---- the user's own photo, kept on this device (IndexedDB) ---- */
@@ -615,6 +772,9 @@ button:focus-visible,.filebtn:focus-within,input:focus-visible,textarea:focus-vi
     $("hitcode").textContent = un ? "Non lu" : h.code;
     $("hitname").textContent = un ? "Tape le code que tu lis sur le vrai marqueur" : (h.name || "");
     $("fixbox").hidden = !un; $("fixskip").hidden = !un; $("blend").hidden = un;
+    var dc = un ? null : decode(h.code);
+    $("hitinfo").textContent = !dc ? "" : dc.special ? dc.special :
+      "Famille " + dc.fam + (FAM[dc.fam] ? " (" + FAM[dc.fam][0] + ")" : "") + " · saturation " + dc.sat + " · luminosité " + dc.bri;
     $("hitdot").style.background = un ? capHex(h) : (h.hex || "transparent");
     var W = photo.img.naturalWidth, H = photo.img.naturalHeight;
     var side = Math.min(W, H, Math.max(W, H) * 0.26);
@@ -742,6 +902,7 @@ button:focus-visible,.filebtn:focus-within,input:focus-visible,textarea:focus-vi
     $("count").textContent = index.length ? index.length + " couleurs" + (unread.length ? " · " + unread.length + " non lus" : "") : "";
     $("todo").hidden = !unread.length;
     $("todotitle").textContent = unread.length + (unread.length > 1 ? " capuchons non lus" : " capuchon non lu");
+    showFades(); showDecode($("dec").value);
     var box = $("inv"); box.innerHTML = ""; $("invcard").hidden = !index.length;
     index.slice().sort(function(a, b){ return a.code < b.code ? -1 : 1; }).forEach(function(it){
       var b = document.createElement("button"); b.type = "button"; b.title = it.name;
@@ -771,6 +932,7 @@ button:focus-visible,.filebtn:focus-within,input:focus-visible,textarea:focus-vi
   $("scan").addEventListener("click", function(){ scan(false); });
   ["cam0", "lib0", "cam1", "lib1"].forEach(function(id){ $(id).addEventListener("change", function(){ newPhoto(this); }); });
   $("deep").addEventListener("click", deepSearch);
+  $("decform").addEventListener("submit", function(e){ e.preventDefault(); $("dec").blur(); showDecode($("dec").value); });
   $("todogo").addEventListener("click", function(){ showUnread(0); });
   $("fixbox").addEventListener("submit", function(e){ e.preventDefault(); fixSave(); });
   $("fixskip").addEventListener("click", function(){ var h = hits[sel]; if (h && h.unread) closeUnread(h); });
@@ -787,6 +949,7 @@ button:focus-visible,.filebtn:focus-within,input:focus-visible,textarea:focus-vi
   photo.img.addEventListener("load", photoLoaded);
   photo.img.addEventListener("error", function(){ say("Cette image ne peut pas être ouverte. Choisis une photo JPEG ou PNG.", true); });
   // first launch: no photo yet, so ask for one; otherwise reopen the user's own photo
+  showDecode($("dec").value); showFades();
   loadPhoto().then(function(blob){ if (blob) { go("trouver"); show(blob); } else go("accueil"); hideSplash(); });
 })();
 </script>

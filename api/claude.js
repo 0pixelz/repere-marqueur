@@ -49,6 +49,10 @@ function chatRequest(messages, palette) {
     "Voici les marqueurs que la personne possède, un par ligne : code | nom | couleur mesurée sur une photo " +
     "(approximative : fie-toi d'abord au nom et à la famille du code, ex. B = bleu, BG = bleu-vert, BV = bleu-violet, YR = jaune-rouge, E = terre, CG/WG/GG = gris).\n" +
     "<marqueurs>\n" + lines.join("\n") + "\n</marqueurs>\n\n" +
+    "Structure d'un code : les lettres donnent la famille de couleur ; le premier chiffre est le niveau de saturation (0 à 9, 0 = teinte la plus pure, plus haut = plus grisée) ; " +
+    "le ou les derniers chiffres donnent la luminosité de 0 (très clair) à 16 (très foncé). Exemple : YR111 = famille YR, saturation 1, luminosité 11. " +
+    "Les couleurs d'une même famille et d'un même niveau de saturation se fondent le mieux : privilégie-les pour un fade, en variant la luminosité. " +
+    "Les codes 0 (blender incolore) et 120 (noir) sont à part.\n\n" +
     "Quand la demande porte sur des couleurs à utiliser (un sujet à dessiner, un dégradé ou « fade », quoi marier avec un code donné, des ombres, etc.), " +
     "choisis 3 à 7 marqueurs UNIQUEMENT dans cette liste, jamais un code absent. Pour un fade, prends des teintes voisines classées du plus clair au plus foncé, " +
     "et garde la couleur de départ si la personne en nomme une (un « numéro » ou « # » de couleur désigne un code de la liste). " +
