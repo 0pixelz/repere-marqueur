@@ -113,6 +113,16 @@ ul.tips{list-style:disc}
 .palhead button{min-height:0;padding:6px 12px;font-size:13px}
 .keep input{font:400 15px var(--body);text-transform:none;letter-spacing:0;padding:10px 14px}
 .keep button{min-height:0;padding:10px 14px}
+.cross{position:absolute;width:22px;height:22px;transform:translate(-50%,-50%);border:3px solid var(--ring);border-radius:50%;box-shadow:0 0 0 2px #fff;pointer-events:none}
+#pipimg{cursor:crosshair}
+.cand{display:flex;align-items:center;gap:10px;padding:8px 10px;border:1.5px solid var(--line);border-radius:12px;background:var(--paper)}
+.cand .dot{width:32px;height:32px}
+.cand div{flex:1;min-width:0}
+.cand b{font:500 16px var(--mono);display:block}
+.cand span{font-size:13px;color:var(--muted)}
+.cand button{min-height:0;padding:8px 12px;font-size:13px}
+.tag{font:700 11px var(--body);text-transform:uppercase;letter-spacing:.04em;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:2px 8px;margin-left:6px}
+canvas.preview{width:100%;height:auto;border-radius:12px;display:block}
 /* first launch */
 .welcome{gap:14px;padding:20px 16px}
 .welcome h2{font-size:24px;font-weight:700;line-height:1.15;text-wrap:balance}
@@ -232,16 +242,29 @@ ul.tips{list-style:disc}
         <input id="fixcode" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="Code du vrai marqueur" aria-label="Code lu sur le marqueur">
         <button type="submit">Enregistrer</button>
       </form>
+      <p class="status" id="fixsugnote" hidden>Suggestions d'après la couleur du capuchon et les codes qu'il te reste à trouver :</p>
+      <div class="chips" id="fixsug" hidden></div>
       <button id="fixskip" type="button" class="ghost" hidden>Ce n'est pas un marqueur</button>
       <button id="blend" type="button" class="ghost">Quoi utiliser avec cette couleur ?</button>
       <button id="emptybtn" type="button" class="ghost">Marquer comme vide</button>
     </section>
 
-    <section class="card" aria-label="Photo complète">
-      <h2>Toute la trousse</h2>
+    <section class="card" id="stagecard" aria-label="Photo complète">
+      <h2 id="stagetitle">Toute la trousse</h2>
       <div class="stage" id="stage"><img id="photo" alt="Photo de la trousse de marqueurs vue du dessus"></div>
     </section>
   </div>
+
+  <!-- pipette : part of the Trouver view, moved in by script -->
+  <template id="piptpl">
+    <section class="card" aria-label="Pipette">
+      <h2>Pipette</h2>
+      <p class="status" id="pipstatus">Choisis une image de référence, puis touche une couleur : l'app te donne tes marqueurs les plus proches.</p>
+      <label class="filebtn">Choisir une image<input id="pipfile" type="file" accept="image/*"></label>
+      <div class="stage" id="pipstage" hidden><img id="pipimg" alt="Image de référence"><div class="cross" id="pipcross" hidden></div></div>
+      <div id="pipout" class="frows"></div>
+    </section>
+  </template>
 
   <!-- ============ Assistant ============ -->
   <div class="view" id="view-idees" hidden>
@@ -300,6 +323,14 @@ ul.tips{list-style:disc}
       <div class="frows" id="fades"></div>
     </section>
 
+    <section class="card" id="misscard" hidden aria-label="Ce qui te manque">
+      <h2>Ce qui te manque</h2>
+      <p id="missnote"></p>
+      <div class="frows" id="gaps"></div>
+      <p class="status" id="misslist"></p>
+      <button id="misscopy" type="button" class="ghost">Copier la liste</button>
+    </section>
+
     <section class="card" aria-label="Les pointes">
       <h2>Les deux pointes</h2>
       <ul class="tips">
@@ -319,6 +350,18 @@ ul.tips{list-style:disc}
 
   <!-- ============ Trousse ============ -->
   <div class="view" id="view-trousse" hidden>
+    <section class="card" aria-label="Mes trousses">
+      <h2>Mes trousses</h2>
+      <div class="chips" id="kitchips"></div>
+      <form class="search keep" id="kitform">
+        <input id="kitname" type="text" maxlength="30" aria-label="Nom de la trousse ouverte">
+        <button type="submit" class="ghost">Renommer</button>
+      </form>
+      <div class="row">
+        <button id="kitadd" type="button" class="ghost">Ajouter une trousse</button>
+        <button id="kitdel" type="button" class="ghost" hidden>Supprimer cette trousse</button>
+      </div>
+    </section>
     <section class="card" aria-label="Photo de la trousse">
       <h2>Ma photo</h2>
       <p class="status" id="scanstatus" role="status"></p>
@@ -341,8 +384,18 @@ ul.tips{list-style:disc}
       <p id="buylist"></p>
       <button id="buycopy" type="button" class="ghost">Copier la liste</button>
     </section>
-    <section class="card" id="palcard" hidden aria-label="Mes palettes">
-      <h2>Mes palettes</h2>
+    <section class="card" aria-label="Nuancier réel">
+      <h2>Nuancier réel</h2>
+      <p>Pour des couleurs plus justes : fais un trait de chaque marqueur sur une feuille blanche, écris son code à côté, puis prends la feuille en photo.</p>
+      <p class="status" id="swstatus" role="status"></p>
+      <div class="row">
+        <label class="filebtn">Photographier ma feuille<input id="swcam" type="file" accept="image/*" capture="environment"></label>
+        <label class="filebtn">Choisir une photo<input id="swlib" type="file" accept="image/*"></label>
+        <button id="swclear" type="button" class="ghost" hidden>Effacer le nuancier</button>
+      </div>
+    </section>
+    <section class="card" id="palcard" hidden aria-label="Mes projets et palettes">
+      <h2>Mes projets et palettes</h2>
       <div class="frows" id="pals"></div>
     </section>
     <section class="card" id="invcard" hidden aria-label="Mes couleurs">
@@ -373,6 +426,10 @@ ul.tips{list-style:disc}
   "use strict";
   var $ = function(id){ return document.getElementById(id); };
   var photo = { img: $("photo"), key: "moi", ready: false };
+  var kits = [];          // [{id, name}] — one photo and one scan per kit
+  var others = {};        // kit id → markers of the kits that are not open
+  var inks = {};          // code → real ink colour, measured on the user's own swatch sheet
+  var onLoaded = null;    // resolves switchKit() once the kit's photo is on screen
   var autoScan = false;   // true right after a new photo: analyse it without asking
   var index = [];      // {code, name, x, y, hex} — x,y in 0..1 of the whole photo
   var unread = [];     // {x, y, unread:true} — caps seen on the photo whose code could not be read
@@ -476,9 +533,10 @@ ul.tips{list-style:disc}
   function briWord(n){ return n <= 4 ? "clair" : n <= 10 ? "moyen" : "foncé"; }
   // markers of the case grouped by family + saturation, lightest first
   function groups(){
-    var g = {};
-    index.forEach(function(it){
-      var d = decode(it.code); if (!d || d.special || it.empty) return;
+    var g = {}, seen = {};
+    allItems().forEach(function(it){
+      var d = decode(it.code); if (!d || d.special || it.empty || seen[it.code]) return;
+      seen[it.code] = true;
       var k = d.fam + "|" + d.sat;
       (g[k] = g[k] || { fam: d.fam, sat: d.sat, items: [] }).items.push({ it: it, bri: d.bri });
     });
@@ -512,11 +570,11 @@ ul.tips{list-style:disc}
   // the marker of the case that matches a code, or the closest one in the same family
   function pickEl(d){
     var box = document.createElement("div"); box.className = "pick";
-    if (!index.length){ box.textContent = "Analyse ta photo pour savoir si tu as cette couleur."; return box; }
-    var it = byCode(d.code), exact = !!it;
+    if (!allItems().length){ box.textContent = "Analyse ta photo pour savoir si tu as cette couleur."; return box; }
+    var it = byAny(d.code), exact = !!it;
     if (!it){
       var best = 1e9;
-      index.forEach(function(x){
+      allItems().forEach(function(x){
         var e = decode(x.code); if (!e || e.special || e.fam !== d.fam) return;
         var dist = Math.abs(e.sat - d.sat) * 3 + Math.abs(e.bri - d.bri);
         if (dist < best){ best = dist; it = x; }
@@ -575,13 +633,56 @@ ul.tips{list-style:disc}
   function showFades(){
     var box = $("fades"); box.innerHTML = "";
     var ok = groups().filter(function(g){ return g.items.length >= 3; });
-    $("fadesnote").textContent = !index.length ? "Analyse ta photo pour voir les fades que tes marqueurs permettent." :
+    $("fadesnote").textContent = !allItems().length ? "Analyse ta photo pour voir les fades que tes marqueurs permettent." :
       ok.length ? "Même famille et même saturation, du clair au foncé. Touche une ligne pour voir ces marqueurs sur la photo." :
       "Aucun groupe de trois marqueurs de même famille et même saturation pour l'instant.";
     ok.forEach(function(g){ box.appendChild(rowEl(g, "")); });
   }
 
   function byCode(code){ var c = canon(code); for (var i = 0; i < index.length; i++) if (index[i].code === c) return index[i]; return null; }
+  // every marker the user owns: the open kit first, then the other kits
+  function allItems(){ var a = index.slice(); Object.keys(others).forEach(function(k){ a = a.concat(others[k]); }); return a; }
+  function byAny(code){
+    var it = byCode(code); if (it) return it;
+    var c = canon(code), all = allItems();
+    for (var i = 0; i < all.length; i++) if (all[i].code === c) return all[i];
+    return null;
+  }
+
+  /* ---- kits: several cases, each with its own photo and scan ---- */
+  function loadKits(){
+    try { kits = JSON.parse(localStorage.getItem("repere:kits") || "null"); } catch (e) { kits = null; }
+    if (!Array.isArray(kits) || !kits.length) kits = [{ id: "moi", name: "Ma trousse" }];
+    var cur = null; try { cur = localStorage.getItem("repere:kit"); } catch (e) {}
+    photo.key = kits.some(function(k){ return k.id === cur; }) ? cur : kits[0].id;
+    try { inks = JSON.parse(localStorage.getItem("repere:inks") || "{}") || {}; } catch (e) { inks = {}; }
+  }
+  function saveKits(){ try { localStorage.setItem("repere:kits", JSON.stringify(kits)); localStorage.setItem("repere:kit", photo.key); } catch (e) {} }
+  function photoKey(id){ return id === "moi" ? "photo" : "photo:" + id; }
+  function kitName(id){ for (var i = 0; i < kits.length; i++) if (kits[i].id === id) return kits[i].name; return "Trousse"; }
+  function switchKit(id){
+    return new Promise(function(resolve){
+      photo.key = id; saveKits(); hits = []; lastQuery = ""; $("q").value = ""; $("chips").hidden = true; $("deep").hidden = true;
+      loadPhoto(id).then(function(blob){
+        if (blob){ onLoaded = resolve; show(blob); return; }
+        photo.ready = false; photo.img.removeAttribute("src"); $("thumb").removeAttribute("src");
+        loadCache(); index = []; unread = []; refresh(); draw();
+        say("Cette trousse n'a pas encore de photo. Prends-la en photo ci-dessous.", true);
+        resolve();
+      });
+    });
+  }
+  function showKits(){
+    var box = $("kitchips"); box.innerHTML = "";
+    kits.forEach(function(k){
+      var b = document.createElement("button"); b.type = "button"; b.className = "chip word"; b.textContent = k.name;
+      b.setAttribute("aria-pressed", k.id === photo.key ? "true" : "false");
+      b.addEventListener("click", function(){ if (k.id !== photo.key && !busy) switchKit(k.id).then(function(){ go("trousse"); }); });
+      box.appendChild(b);
+    });
+    if (document.activeElement !== $("kitname")) $("kitname").value = kitName(photo.key);
+    $("kitdel").hidden = kits.length < 2; $("kitdel").textContent = "Supprimer cette trousse";
+  }
 
   /* ---- the user's own photo, kept on this device (IndexedDB) ---- */
   function store(mode, fn){
@@ -598,8 +699,11 @@ ul.tips{list-style:disc}
       } catch (e) { reject(e); }
     });
   }
-  function savePhoto(blob){ return store("readwrite", function(s){ return s.put(blob, "photo"); }).catch(function(){ return null; }); }
-  function loadPhoto(){ return store("readonly", function(s){ return s.get("photo"); }).catch(function(){ return null; }); }
+  function savePhoto(blob){ return store("readwrite", function(s){ return s.put(blob, photoKey(photo.key)); }).catch(function(){ return null; }); }
+  function loadPhoto(id){ return store("readonly", function(s){ return s.get(photoKey(id || photo.key)); }).catch(function(){ return null; }); }
+  function keepBlob(key, blob){ return store("readwrite", function(s){ return s.put(blob, key); }).catch(function(){ return null; }); }
+  function getBlob(key){ return store("readonly", function(s){ return s.get(key); }).catch(function(){ return null; }); }
+  function dropBlob(key){ return store("readwrite", function(s){ return s.delete(key); }).catch(function(){ return null; }); }
   // resize to a size that is sharp enough to read labels and light enough to keep
   function prepare(file, max){
     max = max || 2600;
@@ -635,12 +739,21 @@ ul.tips{list-style:disc}
   }
 
   /* ---- cache of the scan, per photo, in this browser only ---- */
-  function loadCache(){
-    index = []; unread = [];
+  function readCache(id){
     try {
-      var o = JSON.parse(localStorage.getItem("repere:" + photo.key) || "[]");
-      if (Array.isArray(o)) index = o; else { index = o.index || []; unread = o.unread || []; }
-    } catch (e) {}
+      var o = JSON.parse(localStorage.getItem("repere:" + id) || "[]");
+      return Array.isArray(o) ? { index: o, unread: [] } : { index: o.index || [], unread: o.unread || [] };
+    } catch (e) { return { index: [], unread: [] }; }
+  }
+  function loadCache(){
+    var c = readCache(photo.key); index = c.index; unread = c.unread;
+    others = {};
+    kits.forEach(function(k){
+      if (k.id === photo.key) return;
+      var arr = readCache(k.id).index;
+      arr.forEach(function(it){ it.kit = k.id; if (inks[it.code]) it.hex = inks[it.code]; });
+      others[k.id] = arr;
+    });
   }
   function saveCache(){ try { localStorage.setItem("repere:" + photo.key, JSON.stringify({ index: index, unread: unread })); } catch (e) {} }
   function near(a, b){
@@ -668,14 +781,260 @@ ul.tips{list-style:disc}
     } catch (e) { return ""; }
   }
   function fillColours(){
-    var changed = false;
-    index.forEach(function(it){ if (!it.hex){ it.hex = capHex(it); changed = true; } });
-    if (changed) saveCache();
+    index.forEach(function(it){
+      it.kit = photo.key;
+      // cap: colour of the cap on the photo; hex: colour shown, the real ink when the swatch sheet has it
+      if (!it.cap) it.cap = (!it.inked && it.hex) ? it.hex : capHex(it);
+      delete it.inked;
+      it.hex = inks[it.code] || it.cap;
+    });
+    saveCache();
+  }
+
+  /* ---- colour maths ---- */
+  function hexRgb(hex){ var n = parseInt(String(hex || "#888888").slice(1), 16) || 0; return [n >> 16, (n >> 8) & 255, n & 255]; }
+  function rgbHex(c){ return "#" + c.map(function(v){ var t = Math.max(0, Math.min(255, Math.round(v))).toString(16); return t.length < 2 ? "0" + t : t; }).join(""); }
+  function lab(c){
+    var v = c.map(function(x){ x /= 255; return x > 0.04045 ? Math.pow((x + 0.055) / 1.055, 2.4) : x / 12.92; });
+    var x = (v[0] * 0.4124 + v[1] * 0.3576 + v[2] * 0.1805) / 0.95047, y = v[0] * 0.2126 + v[1] * 0.7152 + v[2] * 0.0722,
+        z = (v[0] * 0.0193 + v[1] * 0.1192 + v[2] * 0.9505) / 1.08883;
+    var f = function(t){ return t > 0.008856 ? Math.pow(t, 1 / 3) : 7.787 * t + 16 / 116; };
+    return [116 * f(y) - 16, 500 * (f(x) - f(y)), 200 * (f(y) - f(z))];
+  }
+  function dE(a, b){ return Math.sqrt(Math.pow(a[0] - b[0], 2) + Math.pow(a[1] - b[1], 2) + Math.pow(a[2] - b[2], 2)); }
+  // mean colour of a small square of an image, centred on a point given in 0..1
+  function sampleAt(img, fx, fy, size){
+    var ctx = probe.getContext("2d", { willReadFrequently: true });
+    ctx.drawImage(img, fx * img.naturalWidth - size / 2, fy * img.naturalHeight - size / 2, size, size, 0, 0, 24, 24);
+    var px = ctx.getImageData(0, 0, 24, 24).data, r = 0, g = 0, b = 0, n = px.length / 4;
+    for (var i = 0; i < px.length; i += 4){ r += px[i]; g += px[i + 1]; b += px[i + 2]; }
+    return [r / n, g / n, b / n];
+  }
+
+  /* ---- unread caps: guess the code from the cap colour and the codes still to find ---- */
+  // expected cap colour of a code the scan has not read, from the read markers of the same family
+  function predict(code){
+    if (code === "120") return [35, 35, 35];
+    var d = decode(code); if (!d || d.special) return null;
+    var near = [];
+    index.forEach(function(it){
+      var e = decode(it.code); if (!e || e.special || e.fam !== d.fam || !it.hex) return;
+      near.push({ w: 1 / (1 + Math.abs(e.sat - d.sat) * 3 + Math.abs(e.bri - d.bri)), c: hexRgb(it.cap || it.hex) });
+    });
+    if (!near.length) return null;
+    near.sort(function(a, b){ return b.w - a.w; }); near = near.slice(0, 3);
+    var out = [0, 0, 0], sum = 0;
+    near.forEach(function(x){ var w = x.w * x.w; sum += w; out[0] += x.c[0] * w; out[1] += x.c[1] * w; out[2] += x.c[2] * w; });
+    return [out[0] / sum, out[1] / sum, out[2] / sum];
+  }
+  function suggest(h){
+    if (!hasList || !photo.ready) return [];
+    var seen = lab(hexRgb(capHex(h))), own = {};
+    index.forEach(function(i){ own[i.code] = true; });
+    return Object.keys(OFF).filter(function(c){ return !own[c]; }).map(function(c){
+      var p = predict(c); if (!p) return null;
+      var dist = dE(seen, lab(p));
+      if (h.guess && lev(h.guess, c) <= 1) dist *= 0.4;      // close to what was read on the label
+      return { code: c, dist: dist };
+    }).filter(Boolean).sort(function(a, b){ return a.dist - b.dist; }).slice(0, 4);
+  }
+
+  /* ---- pipette: touch a colour on a reference image, get the closest markers ---- */
+  function pipette(e){
+    var img = $("pipimg"), r = img.getBoundingClientRect();
+    var fx = (e.clientX - r.left) / r.width, fy = (e.clientY - r.top) / r.height;
+    if (!(fx >= 0 && fx <= 1 && fy >= 0 && fy <= 1) || !img.naturalWidth) return;
+    var c = sampleAt(img, fx, fy, Math.max(5, img.naturalWidth * 0.012)), cl = lab(c), seen = {};
+    var cross = $("pipcross"); cross.hidden = false; cross.style.left = (fx * 100) + "%"; cross.style.top = (fy * 100) + "%";
+    var best = allItems().filter(function(i){ if (i.empty || !i.hex || seen[i.code]) return false; seen[i.code] = true; return true; })
+      .map(function(i){ return { it: i, d: dE(cl, lab(hexRgb(i.hex))) }; }).sort(function(a, b){ return a.d - b.d; }).slice(0, 4);
+    var out = $("pipout"); out.innerHTML = "";
+    var head = document.createElement("div"); head.className = "cand";
+    var hd = document.createElement("i"); hd.className = "dot"; hd.style.background = rgbHex(c);
+    var ht = document.createElement("div"); ht.innerHTML = "<b></b><span></span>"; ht.firstChild.textContent = "Couleur touchée";
+    ht.lastChild.textContent = best.length ? "Tes marqueurs les plus proches :" : "Analyse d'abord ta trousse pour avoir des propositions.";
+    head.appendChild(hd); head.appendChild(ht); out.appendChild(head);
+    best.forEach(function(x){
+      var row = document.createElement("div"); row.className = "cand";
+      var d = document.createElement("i"); d.className = "dot"; d.style.background = x.it.hex;
+      var t = document.createElement("div"); t.innerHTML = "<b></b><span></span>"; t.firstChild.textContent = x.it.code;
+      t.lastChild.textContent = (x.it.name ? x.it.name + " · " : "") + (x.d < 8 ? "très proche" : x.d < 18 ? "proche" : "approchant");
+      var b = document.createElement("button"); b.type = "button"; b.className = "ghost"; b.textContent = "Le trouver";
+      b.addEventListener("click", function(){ showOnPhoto([x.it], 0); });
+      row.appendChild(d); row.appendChild(t); row.appendChild(b); out.appendChild(row);
+    });
+  }
+
+  /* ---- what is missing: against the full range, and holes inside the user's fades ---- */
+  var missText = "";
+  function showMissing(){
+    var own = {}, any = false;
+    allItems().forEach(function(i){ own[i.code] = true; any = true; });
+    $("misscard").hidden = !(hasList && any);
+    if (!hasList || !any) return;
+    var missing = Object.keys(OFF).filter(function(c){ return !own[c]; });
+    var G = {};
+    Object.keys(OFF).forEach(function(c){
+      var d = decode(c); if (!d || d.special) return;
+      (G[d.fam + "|" + d.sat] = G[d.fam + "|" + d.sat] || []).push({ c: c, bri: d.bri, own: !!own[c] });
+    });
+    var box = $("gaps"); box.innerHTML = ""; var n = 0;
+    Object.keys(G).sort().forEach(function(k){
+      var g = G[k].sort(function(a, b){ return a.bri - b.bri; });
+      g.forEach(function(x, j){
+        if (x.own) return;
+        var lo = null, hi = null, i;
+        for (i = j - 1; i >= 0; i--) if (g[i].own){ lo = g[i]; break; }
+        for (i = j + 1; i < g.length; i++) if (g[i].own){ hi = g[i]; break; }
+        if (!lo || !hi) return;
+        n++;
+        var row = document.createElement("div"); row.className = "frow"; row.style.cursor = "default";
+        var t = document.createElement("strong"); t.textContent = x.c + " · " + OFF[x.c];
+        var sp = document.createElement("span"); sp.className = "status"; sp.textContent = "Trou dans un fade : il irait entre " + lo.c + " et " + hi.c + ".";
+        row.appendChild(t); row.appendChild(sp); box.appendChild(row);
+      });
+    });
+    $("missnote").textContent = missing.length ? "Il te manque " + missing.length + " des " + Object.keys(OFF).length + " références de la gamme (320 couleurs et le blender)." +
+      (n ? " " + n + (n > 1 ? " comblent" : " comble") + " un trou dans un de tes fades :" : "") : "Tu as toute la gamme.";
+    missText = missing.map(function(c){ return c + " " + OFF[c]; }).join(", ");
+    $("misslist").textContent = missing.length ? "Toutes les manquantes : " + missText : "";
+    $("misscopy").hidden = !missing.length; $("misscopy").textContent = "Copier la liste";
+  }
+
+  /* ---- real swatch sheet: read each code and measure the ink next to it ---- */
+  function loadImage(blob){
+    return new Promise(function(resolve, reject){
+      var im = new Image(); im.onload = function(){ resolve(im); }; im.onerror = function(){ reject(new Error("image")); };
+      im.src = URL.createObjectURL(blob);
+    });
+  }
+  function swSay(msg, warn){ var s = $("swstatus"); s.textContent = msg || ""; s.className = "status" + (warn ? " warn" : ""); }
+  async function scanSwatch(input){
+    var f = input.files && input.files[0]; input.value = "";
+    if (!f || busy) return;
+    busy = true; lock(true);
+    try {
+      var im = await loadImage(await prepare(f, 2600)), W = im.naturalWidth, H = im.naturalHeight;
+      // paper white: the brightest tenth of the sheet, used to cancel the colour of the room light
+      var cv = document.createElement("canvas"); cv.width = cv.height = 64;
+      var cx = cv.getContext("2d"); cx.drawImage(im, 0, 0, 64, 64);
+      var px = cx.getImageData(0, 0, 64, 64).data, all = [];
+      for (var i = 0; i < px.length; i += 4) all.push([px[i] + px[i + 1] + px[i + 2], px[i], px[i + 1], px[i + 2]]);
+      all.sort(function(a, b){ return b[0] - a[0]; }); all = all.slice(0, 400);
+      var white = [0, 0, 0]; all.forEach(function(a){ white[0] += a[1]; white[1] += a[2]; white[2] += a[3]; });
+      white = white.map(function(v){ return Math.max(120, v / all.length); });
+      var tiles = makeTiles(im), done = 0, best = {}, odd = 0, stop = null;
+      swSay("Lecture du nuancier : 0 / " + tiles.length + " zones");
+      await pool(tiles, 3, async function(t){
+        if (stop) return;
+        try {
+          var arr = parseJson(await ask({ mode: "swatch" }, await tileBlob(t, im)), "[", "]");
+          (Array.isArray(arr) ? arr : []).forEach(function(it){
+            var code = canon(it && it.code), x = Number(it && it.x), y = Number(it && it.y);
+            if (!code || !(x >= 0 && x <= 1000 && y >= 0 && y <= 1000)) return;
+            if (check(code, "").doubt){ odd++; return; }
+            var edge = Math.min(x, 1000 - x, y, 1000 - y);
+            if (best[code] && best[code].edge >= edge) return;
+            var c = sampleAt(im, (t.x + x / 1000 * t.w) / W, (t.y + y / 1000 * t.h) / H, Math.max(6, Math.max(W, H) * 0.008));
+            best[code] = { edge: edge, hex: rgbHex(c.map(function(v, k){ return v * 255 / white[k]; })) };
+          });
+        } catch (e) { if (e && (e.code === "no_key" || e.code === "rate_limited")) stop = e; }
+        done++; swSay("Lecture du nuancier : " + done + " / " + tiles.length + " zones");
+      });
+      var n = Object.keys(best).length;
+      if (!n) swSay(stop ? explain(stop) : "Aucun code lisible sur cette feuille. Écris les codes bien lisiblement à côté de chaque trait.", true);
+      else {
+        Object.keys(best).forEach(function(c){ inks[c] = best[c].hex; });
+        try { localStorage.setItem("repere:inks", JSON.stringify(inks)); } catch (e) {}
+        if (photo.ready) fillColours(); loadCacheOthers(); refresh(); draw();
+        swSay(n + " couleurs mesurées sur cette feuille." + (odd ? " " + odd + " codes non reconnus ont été ignorés." : ""));
+      }
+    } catch (e) { swSay("Cette image ne peut pas être ouverte. Essaie une autre photo.", true); }
+    busy = false; lock(false);
+  }
+  function loadCacheOthers(){ var keepI = index, keepU = unread; loadCache(); index = keepI; unread = keepU; }
+
+  /* ---- filled preview: pour each proposed colour into the zone under its dot ---- */
+  function fillPreview(url, picks){
+    return loadImage2(url).then(function(im){
+      var k = Math.min(1, 900 / Math.max(im.naturalWidth, im.naturalHeight));
+      var w = Math.round(im.naturalWidth * k), h = Math.round(im.naturalHeight * k), n = w * h;
+      var cv = document.createElement("canvas"); cv.width = w; cv.height = h; cv.className = "preview";
+      var ctx = cv.getContext("2d"); ctx.drawImage(im, 0, 0, w, h);
+      var data = ctx.getImageData(0, 0, w, h), px = data.data, i, x, y;
+      var gray = new Float32Array(n);
+      for (i = 0; i < n; i++) gray[i] = 0.299 * px[i * 4] + 0.587 * px[i * 4 + 1] + 0.114 * px[i * 4 + 2];
+      // local brightness of the paper (so a shadow across the sheet does not count as a line)
+      var W1 = w + 1, integ = new Float64Array(W1 * (h + 1));
+      for (y = 0; y < h; y++) for (x = 0; x < w; x++)
+        integ[(y + 1) * W1 + x + 1] = gray[y * w + x] + integ[y * W1 + x + 1] + integ[(y + 1) * W1 + x] - integ[y * W1 + x];
+      var r = Math.max(8, Math.round(w / 24)), mean = new Float32Array(n), line = new Uint8Array(n), wall = new Uint8Array(n);
+      for (y = 0; y < h; y++) for (x = 0; x < w; x++){
+        var x0 = Math.max(0, x - r), x1 = Math.min(w - 1, x + r), y0 = Math.max(0, y - r), y1 = Math.min(h - 1, y + r);
+        var m = (integ[(y1 + 1) * W1 + x1 + 1] - integ[y0 * W1 + x1 + 1] - integ[(y1 + 1) * W1 + x0] + integ[y0 * W1 + x0]) / ((x1 - x0 + 1) * (y1 - y0 + 1));
+        i = y * w + x; mean[i] = m; if (gray[i] < m * 0.8) line[i] = 1;
+      }
+      for (y = 0; y < h; y++) for (x = 0; x < w; x++){     // thicken lines by one pixel to close small gaps
+        i = y * w + x; if (!line[i]) continue;
+        wall[i] = 1; if (x > 0) wall[i - 1] = 1; if (x < w - 1) wall[i + 1] = 1; if (y > 0) wall[i - w] = 1; if (y < h - 1) wall[i + w] = 1;
+      }
+      var region = new Int32Array(n), stack = new Int32Array(n), colour = [null], blobs = [], id = 0, filled = 0;
+      picks.forEach(function(p){
+        var rgb = hexRgb(p.item.hex);
+        (p.pts || []).forEach(function(q){
+          var sx = Math.round(q[0] / 1000 * (w - 1)), sy = Math.round(q[1] / 1000 * (h - 1)), s = sy * w + sx, d, a, b, found = !wall[s];
+          for (d = 1; d <= 8 && !found; d++) for (a = -d; a <= d && !found; a++) for (b = -d; b <= d && !found; b++){
+            var xx = sx + a, yy = sy + b;
+            if (xx >= 0 && xx < w && yy >= 0 && yy < h && !wall[yy * w + xx]){ s = yy * w + xx; sx = xx; sy = yy; found = true; }
+          }
+          if (!found || region[s] < 0) return;
+          if (region[s] > 0){ blobs.push({ rid: region[s], x: sx, y: sy, rgb: rgb }); return; }   // zone already has its base: shade it
+          id++; var top = 0, count = 0; stack[top++] = s; region[s] = id;
+          while (top){
+            var c = stack[--top], cx = c % w; count++;
+            if (cx > 0 && !wall[c - 1] && !region[c - 1]){ region[c - 1] = id; stack[top++] = c - 1; }
+            if (cx < w - 1 && !wall[c + 1] && !region[c + 1]){ region[c + 1] = id; stack[top++] = c + 1; }
+            if (c >= w && !wall[c - w] && !region[c - w]){ region[c - w] = id; stack[top++] = c - w; }
+            if (c < n - w && !wall[c + w] && !region[c + w]){ region[c + w] = id; stack[top++] = c + w; }
+          }
+          if (count > n * 0.5){ for (i = 0; i < n; i++) if (region[i] === id) region[i] = -1; colour[id] = null; }   // leaked out of the zone
+          else { colour[id] = rgb; filled++; }
+        });
+      });
+      var out = new Float32Array(n * 3), has = new Uint8Array(n);
+      for (i = 0; i < n; i++){ var rid = region[i]; if (rid > 0 && colour[rid]){ has[i] = 1; out[i * 3] = colour[rid][0]; out[i * 3 + 1] = colour[rid][1]; out[i * 3 + 2] = colour[rid][2]; } }
+      blobs.forEach(function(bl){
+        var R = w * 0.06;
+        for (y = Math.max(0, Math.floor(bl.y - R)); y <= Math.min(h - 1, bl.y + R); y++)
+          for (x = Math.max(0, Math.floor(bl.x - R)); x <= Math.min(w - 1, bl.x + R); x++){
+            i = y * w + x; if (region[i] !== bl.rid) continue;
+            var dd = Math.sqrt((x - bl.x) * (x - bl.x) + (y - bl.y) * (y - bl.y)); if (dd > R) continue;
+            var al = 0.8 * (1 - dd / R);
+            out[i * 3] += (bl.rgb[0] - out[i * 3]) * al; out[i * 3 + 1] += (bl.rgb[1] - out[i * 3 + 1]) * al; out[i * 3 + 2] += (bl.rgb[2] - out[i * 3 + 2]) * al;
+          }
+      });
+      for (i = 0; i < n; i++){
+        var j = i;
+        if (!has[i] && wall[i] && !line[i]){      // thin rim next to a line: take the colour of the zone beside it
+          var xr = i % w;
+          j = (xr > 0 && has[i - 1]) ? i - 1 : (xr < w - 1 && has[i + 1]) ? i + 1 : (i >= w && has[i - w]) ? i - w : (i < n - w && has[i + w]) ? i + w : -1;
+        }
+        if (j < 0 || !has[j]) continue;
+        var sh = Math.max(0.7, Math.min(1, gray[i] / mean[i]));
+        px[i * 4] = out[j * 3] * sh; px[i * 4 + 1] = out[j * 3 + 1] * sh; px[i * 4 + 2] = out[j * 3 + 2] * sh;
+      }
+      ctx.putImageData(data, 0, 0);
+      return { canvas: cv, filled: filled };
+    });
+  }
+  function loadImage2(url){
+    return new Promise(function(resolve, reject){ var im = new Image(); im.onload = function(){ resolve(im); }; im.onerror = function(){ reject(new Error("image")); }; im.src = url; });
   }
 
   /* ---- tiles: the photo is cut in overlapping pieces so labels are big enough to read ---- */
-  function makeTiles(){
-    var W = photo.img.naturalWidth, H = photo.img.naturalHeight;
+  function makeTiles(src){
+    src = src || photo.img;
+    var W = src.naturalWidth, H = src.naturalHeight;
     var cols = W >= H ? 4 : 3, rows = W >= H ? 3 : 4, ov = 0.18;
     var tw = W / (cols * (1 - ov) + ov), th = H / (rows * (1 - ov) + ov);
     var out = [], r, c;
@@ -683,12 +1042,13 @@ ul.tips{list-style:disc}
       out.push({ x: c * tw * (1 - ov), y: r * th * (1 - ov), w: tw, h: th });
     return out;
   }
-  function tileBlob(t){
+  function tileBlob(t, src){
+    src = src || photo.img;
     return new Promise(function(resolve, reject){
       var k = Math.min(1, 1100 / Math.max(t.w, t.h));
       var cv = document.createElement("canvas");
       cv.width = Math.round(t.w * k); cv.height = Math.round(t.h * k);
-      cv.getContext("2d").drawImage(photo.img, t.x, t.y, t.w, t.h, 0, 0, cv.width, cv.height);
+      cv.getContext("2d").drawImage(src, t.x, t.y, t.w, t.h, 0, 0, cv.width, cv.height);
       cv.toBlob(function(b){ b ? resolve(b) : reject(new Error("image")); }, "image/jpeg", 0.88);
     });
   }
@@ -856,6 +1216,9 @@ ul.tips{list-style:disc}
       say(hits.length > 1 ? hits.length + " marqueurs correspondent. Touche un code pour le voir." : "Trouvé.");
       if (hits.length > 1) chipList(hits.map(function(h){ return h.code; }), true);
     } else {
+      var away = null;
+      Object.keys(others).some(function(k){ return others[k].some(function(it){ if (it.code === q){ away = it; return true; } return false; }); });
+      if (away){ showOnPhoto([away], 0); return; }
       var near = index.filter(function(i){ return lev(i.code, q) <= 1; }).slice(0, 8);
       say(q + (OFF[q] ? " (" + OFF[q] + ") existe chez Ohuhu, mais n'a pas été lu sur ta photo." : hasList ? " n'est pas un code de la gamme Honolulu 320." : " n'est pas dans les codes lus.") +
         (near.length ? " Codes proches dans ta trousse :" : ""), true);
@@ -899,6 +1262,14 @@ ul.tips{list-style:disc}
     if (un && document.activeElement !== $("fixcode")) $("fixcode").value = h.guess || "";
     $("emptybtn").hidden = un; $("emptybtn").textContent = h.empty ? "Il n'est plus vide" : "Marquer comme vide";
     $("fixbox").hidden = !un; $("fixskip").hidden = !un; $("blend").hidden = un;
+    var sug = un ? suggest(h) : [], sbox = $("fixsug"); sbox.innerHTML = "";
+    sbox.hidden = !sug.length; $("fixsugnote").hidden = !sug.length;
+    sug.forEach(function(c){
+      var b = document.createElement("button"); b.type = "button"; b.className = "chip";
+      b.textContent = c.code + (OFF[c.code] ? " · " + OFF[c.code] : "");
+      b.addEventListener("click", function(){ $("fixcode").value = c.code; });
+      sbox.appendChild(b);
+    });
     var dc = un ? null : decode(h.code);
     $("hitinfo").textContent = !dc ? "" : dc.special ? dc.special :
       "Famille " + dc.fam + (FAM[dc.fam] ? " (" + FAM[dc.fam][0] + ")" : "") + " · saturation " + dc.sat + " · luminosité " + dc.bri;
@@ -943,9 +1314,9 @@ ul.tips{list-style:disc}
     if (busy || !text) return;
     $("ask").value = ""; $("ask").style.height = ""; $("ideas").hidden = true;
     var mine = bubble("me", text);
-    var sentPic = drawing ? $("drawimg").src : "";
-    if (drawing){ var pic = document.createElement("img"); pic.src = sentPic; pic.alt = "Ton dessin"; mine.insertBefore(pic, mine.firstChild); }
-    if (!index.length){
+    var sentPic = drawing ? { url: $("drawimg").src, blob: drawing } : null;
+    if (drawing){ var pic = document.createElement("img"); pic.src = sentPic.url; pic.alt = "Ton dessin"; mine.insertBefore(pic, mine.firstChild); }
+    if (!allItems().length){
       bubble("bot warn", "Je dois d'abord connaître tes couleurs : va dans l'onglet Trousse et appuie sur Analyser la photo.");
       toBottom(); return;
     }
@@ -954,10 +1325,11 @@ ul.tips{list-style:disc}
     var waitMsg = bubble("bot wait", "Je regarde dans ta trousse…"); toBottom();
     try {
       var raw = await call({ mode: "chat", messages: chat.slice(-12), image: drawing ? await toBase64(drawing) : "",
-        palette: index.filter(function(i){ return !i.empty; }).map(function(i){ return { code: i.code, name: i.name, hex: i.hex || "" }; }) });
+        palette: (function(){ var seen = {}; return allItems().filter(function(i){ if (i.empty || seen[i.code]) return false; seen[i.code] = true; return true; })
+          .map(function(i){ return { code: i.code, name: i.name, hex: i.hex || "" }; }); })() });
       var o = parseReply(raw);
       var picks = o.marqueurs.map(function(m){
-        var it = byCode(m && m.code);
+        var it = byAny(m && m.code);
         var pts = (Array.isArray(m && m.points) ? m.points : []).filter(function(q){
           return Array.isArray(q) && q[0] >= 0 && q[0] <= 1000 && q[1] >= 0 && q[1] <= 1000;
         }).slice(0, 4);
@@ -982,7 +1354,8 @@ ul.tips{list-style:disc}
     var n = parseInt(String(hex || "#888888").slice(1), 16);
     return ((n >> 16) * 299 + ((n >> 8) & 255) * 587 + (n & 255) * 114) / 1000 > 150 ? "#1c1c1c" : "#ffffff";
   }
-  function renderReply(reply, picks, pic){
+  // pic: {url, blob} of the attached drawing, or null. saved: true when reopening a stored project.
+  function renderReply(reply, picks, pic, saved){
     var m = bubble("bot" + (picks.length ? " wide" : ""), reply);
     if (!picks.length) return;
     var items = picks.map(function(p){ return p.item; });
@@ -993,7 +1366,7 @@ ul.tips{list-style:disc}
       var cap = document.createElement("p"); cap.className = "status"; cap.textContent = "Où poser chaque couleur (les numéros renvoient à la liste) :";
       m.appendChild(cap);
       var dr = document.createElement("div"); dr.className = "stage";
-      var di = document.createElement("img"); di.src = pic; di.alt = "Ton dessin avec une pastille par couleur proposée"; dr.appendChild(di);
+      var di = document.createElement("img"); di.src = pic.url; di.alt = "Ton dessin avec une pastille par couleur proposée"; dr.appendChild(di);
       picks.forEach(function(p, i){
         (p.pts || []).forEach(function(q){
           var pin = document.createElement("button"); pin.type = "button"; pin.className = "pin";
@@ -1005,6 +1378,18 @@ ul.tips{list-style:disc}
         });
       });
       m.appendChild(dr);
+      var pv = document.createElement("button"); pv.type = "button"; pv.className = "ghost"; pv.textContent = "Voir l'aperçu rempli";
+      pv.addEventListener("click", function(){
+        pv.disabled = true; pv.textContent = "Remplissage…";
+        fillPreview(pic.url, picks).then(function(res){
+          var note = document.createElement("p"); note.className = "status";
+          note.textContent = res.filled ? "Aperçu approximatif : la couleur s'arrête aux traits fermés, et les teintes viennent de la photo de tes marqueurs." :
+            "Aucune zone n'a pu être remplie : les traits ne sont pas assez nets ou fermés sur cette photo.";
+          m.insertBefore(note, pv); if (res.filled) m.insertBefore(res.canvas, note);
+          pv.remove();
+        }, function(){ pv.disabled = false; pv.textContent = "Aperçu impossible. Réessayer"; });
+      });
+      m.appendChild(pv);
     } else {
       var fade = document.createElement("div"); fade.className = "fade";
       fade.style.background = cols.length > 1 ? "linear-gradient(90deg," + cols.join(",") + ")" : cols[0];
@@ -1016,47 +1401,72 @@ ul.tips{list-style:disc}
       var dot = document.createElement("span"); dot.className = "dot"; dot.style.background = p.item.hex || "transparent";
       var txt = document.createElement("div"); txt.className = "txt";
       var b = document.createElement("b"); b.textContent = (i + 1) + " · " + p.item.code;
-      var sp = document.createElement("span"); sp.textContent = [p.item.name, p.role].filter(Boolean).join(" · ");
+      var sp = document.createElement("span"); sp.textContent = [p.item.name, p.role, p.item.kit !== photo.key ? "dans « " + kitName(p.item.kit) + " »" : ""].filter(Boolean).join(" · ");
       txt.appendChild(b); txt.appendChild(sp); li.appendChild(dot); li.appendChild(txt);
       li.addEventListener("click", function(){ showOnPhoto(items, i); });
       ol.appendChild(li);
     });
     m.appendChild(ol);
-    // the whole case with every proposed marker circled in red
-    var st = document.createElement("div"); st.className = "stage";
-    var im = document.createElement("img"); im.src = photo.img.src; im.alt = "Marqueurs proposés encerclés sur la photo de la trousse";
-    st.appendChild(im);
-    items.forEach(function(h, i){
-      var r = document.createElement("div"); r.className = "ring";
-      r.style.left = (h.x * 100) + "%"; r.style.top = (h.y * 100) + "%";
-      var n = document.createElement("i"); n.textContent = i + 1; r.appendChild(n);
-      st.appendChild(r);
+    // the open case with every proposed marker circled in red; markers of other cases get a button
+    var here = items.filter(function(h){ return h.kit === photo.key; });
+    if (here.length && photo.ready){
+      var st = document.createElement("div"); st.className = "stage";
+      var im = document.createElement("img"); im.src = photo.img.src; im.alt = "Marqueurs proposés encerclés sur la photo de la trousse";
+      st.appendChild(im);
+      items.forEach(function(h, i){
+        if (h.kit !== photo.key) return;
+        var r = document.createElement("div"); r.className = "ring";
+        r.style.left = (h.x * 100) + "%"; r.style.top = (h.y * 100) + "%";
+        var n = document.createElement("i"); n.textContent = i + 1; r.appendChild(n);
+        st.appendChild(r);
+      });
+      st.addEventListener("click", function(){ showOnPhoto(items, items.indexOf(here[0])); });
+      m.appendChild(st);
+    }
+    var byKit = {};
+    items.forEach(function(h){ if (h.kit !== photo.key) (byKit[h.kit] = byKit[h.kit] || []).push(h); });
+    Object.keys(byKit).forEach(function(k){
+      var ob = document.createElement("button"); ob.type = "button"; ob.className = "ghost";
+      ob.textContent = "Dans « " + kitName(k) + " » : " + byKit[k].map(function(h){ return h.code; }).join(", ");
+      ob.addEventListener("click", function(){ showOnPhoto(items, items.indexOf(byKit[k][0])); });
+      m.appendChild(ob);
     });
-    st.addEventListener("click", function(){ showOnPhoto(items, 0); });
-    m.appendChild(st);
     var big = document.createElement("button"); big.type = "button"; big.className = "ghost"; big.textContent = "Voir de près, un par un";
     big.addEventListener("click", function(){ showOnPhoto(items, 0); });
     m.appendChild(big);
-    // keep this suggestion under a name
+    if (saved) return;
+    // keep this suggestion (and the drawing, if any) under a name
     var keep = document.createElement("form"); keep.className = "search keep";
-    var nm = document.createElement("input"); nm.type = "text"; nm.maxLength = 40; nm.value = lastAsk.slice(0, 40); nm.setAttribute("aria-label", "Nom de la palette");
+    var nm = document.createElement("input"); nm.type = "text"; nm.maxLength = 40; nm.value = lastAsk.slice(0, 40); nm.setAttribute("aria-label", "Nom du projet");
     var ok = document.createElement("button"); ok.type = "submit"; ok.className = "ghost"; ok.textContent = "Enregistrer";
     keep.appendChild(nm); keep.appendChild(ok);
     keep.addEventListener("submit", function(e){
       e.preventDefault();
-      var list = loadPals();
-      list.unshift({ id: Date.now(), name: nm.value.trim() || "Palette", codes: items.map(function(i){ return i.code; }) });
+      var list = loadPals(), pid = Date.now(), hasPic = !!(pic && pic.blob);
+      list.unshift({ id: pid, name: nm.value.trim() || "Palette", codes: items.map(function(i){ return i.code; }), reply: reply, pic: hasPic,
+        picks: picks.map(function(p){ return { code: p.item.code, role: p.role, pts: p.pts || [] }; }) });
+      if (hasPic) keepBlob("proj:" + pid, pic.blob);
       savePals(list.slice(0, 60)); showPals();
-      keep.innerHTML = ""; var done = document.createElement("p"); done.className = "status"; done.textContent = "Palette enregistrée. Tu la retrouves dans l'onglet Trousse."; keep.appendChild(done);
+      keep.innerHTML = ""; var done = document.createElement("p"); done.className = "status";
+      done.textContent = "Enregistré. Tu le retrouves dans l'onglet Trousse, sous « Mes projets et palettes »."; keep.appendChild(done);
     });
     m.appendChild(keep);
   }
+  // show markers on the photo of their case; if they are in another case, open that case first
   function showOnPhoto(items, i){
-    hits = items.slice(); sel = i || 0; numbered = true; lastQuery = "";
-    $("q").value = ""; $("deep").hidden = true;
-    chipList(hits.map(function(h){ return h.code; }), true);
-    say(hits.length + " couleurs proposées. Touche un code pour le voir de près.");
-    go("trouver");
+    var target = items[i || 0]; if (!target) return;
+    var kid = target.kit || photo.key, codes = items.map(function(x){ return x.code; });
+    var open = function(){
+      hits = codes.map(function(c){ return byCode(c); }).filter(Boolean);
+      sel = Math.max(0, hits.indexOf(byCode(target.code))); numbered = hits.length > 1; lastQuery = "";
+      $("q").value = ""; $("deep").hidden = true;
+      if (hits.length > 1) chipList(hits.map(function(h){ return h.code; }), true); else { $("chips").hidden = true; $("chips").innerHTML = ""; }
+      var away = codes.length - hits.length;
+      say(hits.length + (hits.length > 1 ? " couleurs" : " couleur") + (kits.length > 1 ? " dans « " + kitName(photo.key) + " »" : "") + "." +
+        (away > 0 ? " " + away + (away > 1 ? " autres sont" : " autre est") + " dans une autre trousse." : "") + (hits.length > 1 ? " Touche un code pour le voir de près." : ""));
+      go("trouver");
+    };
+    if (kid !== photo.key) switchKit(kid).then(open); else open();
   }
 
   /* ---- caps the scan saw but could not read: the user types the code ---- */
@@ -1085,28 +1495,40 @@ ul.tips{list-style:disc}
   /* ---- saved palettes (kept on this device) ---- */
   function loadPals(){ try { return JSON.parse(localStorage.getItem("repere:palettes") || "[]"); } catch (e) { return []; } }
   function savePals(list){ try { localStorage.setItem("repere:palettes", JSON.stringify(list)); } catch (e) {} }
+  function openProject(p){
+    var picks = (p.picks || []).map(function(x){ var it = byAny(x.code); return it ? { item: it, role: x.role || "", pts: x.pts || [] } : null; }).filter(Boolean);
+    var render = function(pic){
+      bubble("me", p.name); lastAsk = p.name;
+      if (picks.length) renderReply(p.reply || "Projet enregistré.", picks, pic, true);
+      else bubble("bot warn", "Aucun des marqueurs de ce projet n'est dans tes trousses actuelles.");
+      $("ideas").hidden = true; go("idees"); toBottom();
+    };
+    if (p.pic) getBlob("proj:" + p.id).then(function(blob){ render(blob ? { url: URL.createObjectURL(blob), blob: null } : null); });
+    else render(null);
+  }
   function showPals(){
     var list = loadPals(), box = $("pals"); box.innerHTML = ""; $("palcard").hidden = !list.length;
     list.forEach(function(p){
       var row = document.createElement("div"); row.className = "frow";
       var head = document.createElement("div"); head.className = "palhead";
       var t = document.createElement("strong"); t.textContent = p.name;
+      if (p.pic){ var tag = document.createElement("span"); tag.className = "tag"; tag.textContent = "dessin"; t.appendChild(tag); }
       var del = document.createElement("button"); del.type = "button"; del.className = "ghost"; del.textContent = "Supprimer";
       del.addEventListener("click", function(e){
         e.stopPropagation();
         if (del.textContent === "Supprimer"){ del.textContent = "Confirmer ?"; return; }
-        savePals(loadPals().filter(function(x){ return x.id !== p.id; })); showPals();
+        savePals(loadPals().filter(function(x){ return x.id !== p.id; })); if (p.pic) dropBlob("proj:" + p.id); showPals();
       });
       head.appendChild(t); head.appendChild(del); row.appendChild(head);
       var sw = document.createElement("div"); sw.className = "sw", items = [];
       p.codes.forEach(function(c){
-        var it = byCode(c), sp = document.createElement("span"), d = document.createElement("i");
+        var it = byAny(c), sp = document.createElement("span"), d = document.createElement("i");
         d.className = "dot"; d.style.background = it && it.hex ? it.hex : "transparent";
         if (it) items.push(it); else sp.style.opacity = ".45";
         sp.appendChild(d); sp.appendChild(document.createTextNode(c)); sw.appendChild(sp);
       });
       row.appendChild(sw);
-      row.addEventListener("click", function(){ if (items.length) showOnPhoto(items, 0); });
+      row.addEventListener("click", function(){ if (p.picks) openProject(p); else if (items.length) showOnPhoto(items, 0); });
       box.appendChild(row);
     });
   }
@@ -1118,7 +1540,12 @@ ul.tips{list-style:disc}
     $("count").textContent = index.length ? index.length + " couleurs" + (unread.length ? " · " + unread.length + " non lus" : "") : "";
     $("todo").hidden = !unread.length;
     $("todotitle").textContent = unread.length + (unread.length > 1 ? " capuchons à vérifier" : " capuchon à vérifier");
-    showFades(); showDecode($("dec").value); showPals();
+    index.forEach(function(it){ it.kit = photo.key; });
+    showKits(); showFades(); showDecode($("dec").value); showPals(); showMissing();
+    $("stagecard").hidden = !photo.ready; $("thumb").hidden = !photo.ready; $("scan").hidden = !photo.ready;
+    $("stagetitle").textContent = kits.length > 1 ? kitName(photo.key) : "Toute la trousse";
+    var ni = Object.keys(inks).length; $("swclear").hidden = !ni;
+    if (ni && !busy) swSay(ni + " couleurs réelles enregistrées. Elles remplacent la couleur des capuchons.");
     var gone = index.filter(function(i){ return i.empty; }).sort(function(a, b){ return a.code < b.code ? -1 : 1; });
     $("buy").hidden = !gone.length;
     $("buylist").textContent = gone.map(function(i){ return i.code + (i.name ? " " + i.name : ""); }).join(" · ");
@@ -1135,11 +1562,12 @@ ul.tips{list-style:disc}
     if (!photo.ready){ say("La photo n'est pas encore chargée.", true); return false; }
     return true;
   }
-  function lock(on){ ["scan", "deep", "cam1", "lib1", "askgo"].forEach(function(id){ $(id).disabled = on; }); }
+  function lock(on){ ["scan", "deep", "cam1", "lib1", "askgo", "swcam", "swlib", "kitadd", "kitdel"].forEach(function(id){ $(id).disabled = on; }); }
   function photoLoaded(){
     photo.ready = true; loadCache(); fillColours(); refresh(); hits = []; draw();
+    if (onLoaded){ var done = onLoaded; onLoaded = null; done(); }
     if (autoScan){ autoScan = false; go("trousse"); scan(true); return; }
-    say(index.length ? index.length + " codes repérés" + (unread.length ? ", " + unread.length + " non lus (onglet Trousse)" : "") + ". Tape un code pour le trouver." :
+    say(index.length ? index.length + " codes repérés" + (unread.length ? ", " + unread.length + " à vérifier (onglet Trousse)" : "") + ". Tape un code pour le trouver." :
       "Ta photo n'est pas encore analysée : onglet Trousse, puis Analyser la photo.");
   }
 
@@ -1160,6 +1588,44 @@ ul.tips{list-style:disc}
     var b = this, text = "Marqueurs Ohuhu à racheter : " + $("buylist").textContent;
     try { navigator.clipboard.writeText(text).then(function(){ b.textContent = "Liste copiée"; }, function(){ b.textContent = "Copie impossible ici"; }); }
     catch (e) { b.textContent = "Copie impossible ici"; }
+  });
+  $("misscopy").addEventListener("click", function(){
+    var b = this;
+    try { navigator.clipboard.writeText("Marqueurs Ohuhu qui me manquent : " + missText).then(function(){ b.textContent = "Liste copiée"; }, function(){ b.textContent = "Copie impossible ici"; }); }
+    catch (e) { b.textContent = "Copie impossible ici"; }
+  });
+  $("view-trouver").appendChild($("piptpl").content);
+  $("pipfile").addEventListener("change", function(){
+    var f = this.files && this.files[0]; this.value = ""; if (!f) return;
+    prepare(f, 1600).then(function(blob){
+      $("pipimg").src = URL.createObjectURL(blob); $("pipstage").hidden = false; $("pipcross").hidden = true; $("pipout").innerHTML = "";
+      $("pipstatus").textContent = "Touche une couleur sur l'image.";
+    }, function(){ $("pipstatus").textContent = "Cette image ne peut pas être ouverte. Essaie une autre."; });
+  });
+  $("pipimg").addEventListener("click", pipette);
+  ["swcam", "swlib"].forEach(function(id){ $(id).addEventListener("change", function(){ scanSwatch(this); }); });
+  $("swclear").addEventListener("click", function(){
+    if (this.textContent !== "Confirmer ?"){ this.textContent = "Confirmer ?"; return; }
+    this.textContent = "Effacer le nuancier";
+    inks = {}; try { localStorage.removeItem("repere:inks"); } catch (e) {}
+    if (photo.ready) fillColours(); refresh(); draw(); swSay("Nuancier effacé : les couleurs viennent de nouveau des capuchons.");
+  });
+  $("kitform").addEventListener("submit", function(e){
+    e.preventDefault(); var v = $("kitname").value.trim(); if (!v) return;
+    kits.forEach(function(k){ if (k.id === photo.key) k.name = v.slice(0, 30); });
+    saveKits(); $("kitname").blur(); refresh();
+  });
+  $("kitadd").addEventListener("click", function(){
+    if (busy) return;
+    var id = "k" + Date.now(); kits.push({ id: id, name: "Trousse " + (kits.length + 1) });
+    switchKit(id).then(function(){ go("trousse"); });
+  });
+  $("kitdel").addEventListener("click", function(){
+    if (busy || kits.length < 2) return;
+    if (this.textContent !== "Confirmer ?"){ this.textContent = "Confirmer ?"; return; }
+    var id = photo.key; kits = kits.filter(function(k){ return k.id !== id; });
+    try { localStorage.removeItem("repere:" + id); } catch (e) {}
+    dropBlob(photoKey(id)); switchKit(kits[0].id).then(function(){ go("trousse"); });
   });
   $("decform").addEventListener("submit", function(e){ e.preventDefault(); $("dec").blur(); showDecode($("dec").value); });
   $("todogo").addEventListener("click", function(){ showUnread(0); });
@@ -1182,7 +1648,8 @@ ul.tips{list-style:disc}
   photo.img.addEventListener("error", function(){ say("Cette image ne peut pas être ouverte. Choisis une photo JPEG ou PNG.", true); });
   // first launch: no photo yet, so ask for one; otherwise reopen the user's own photo
   showDecode($("dec").value); showFades();
-  loadPhoto().then(function(blob){ if (blob) { go("trouver"); show(blob); } else go("accueil"); hideSplash(); });
+  loadKits();
+  loadPhoto().then(function(blob){ if (blob) { go("trouver"); show(blob); } else if (kits.length > 1) { go("trousse"); switchKit(photo.key); } else go("accueil"); hideSplash(); });
 })();
 </script>
 </body>

@@ -15,10 +15,10 @@ L'app demande une photo de la trousse (appareil photo ou photothèque), puis l'a
 
 ## Onglets
 
-- **Trouver** : recherche par code ou par nom, gros plan et cercle rouge sur la photo.
-- **Assistant** : une conversation. Demande un sujet (« un nuage ») ou un fade à partir d'un code ; Claude choisit 3 à 7 marqueurs de ta trousse et la réponse les montre encerclés en rouge sur la photo. On peut joindre une photo de son dessin pour avoir des suggestions zone par zone.
-- **Guide** : décodeur de code (famille, saturation, luminosité), règles pour un fade, et la liste des fades possibles avec les marqueurs de la trousse.
-- **Trousse** : changer la photo, lancer l'analyse, voir toutes les couleurs lues. Les capuchons vus mais non lus (reflet, flou) sont signalés ; tu tapes leur code à la main. On y retrouve aussi les palettes enregistrées et la liste des marqueurs vides à racheter.
+- **Trouver** : recherche par code ou par nom dans toutes les trousses, gros plan et cercle rouge sur la photo. **Pipette** : on touche une couleur sur une image de référence et l'app donne les marqueurs les plus proches.
+- **Assistant** : une conversation. Demande un sujet ou un fade ; Claude choisit dans les trousses et la réponse montre les marqueurs encerclés. Avec une photo de dessin jointe : pastilles numérotées sur le dessin, aperçu rempli, et enregistrement en projet.
+- **Guide** : décodeur de code, règles pour un fade, fades possibles, et ce qui manque (références absentes et trous dans les fades).
+- **Trousse** : plusieurs trousses (une photo et une analyse chacune), capuchons à vérifier avec suggestions de code, nuancier réel, marqueurs à racheter, projets et palettes, toutes les couleurs lues.
 
 Sur iPhone : Safari → Partager → « Sur l'écran d'accueil » pour l'ouvrir comme une app.
 
@@ -44,4 +44,4 @@ vercel dev
 
 ## Coût
 
-Une analyse complète fait 12 appels avec image. Une recherche ciblée en fait 12 autres, plus courts. Chaque message à l'assistant fait un seul appel, sans image.
+Une analyse complète fait 12 appels avec image. Une recherche ciblée en fait 12 autres, plus courts. Chaque message à l'assistant fait un seul appel (avec l'image du dessin si elle est jointe). La lecture d'un nuancier fait 12 appels. La pipette, l'aperçu rempli, les couleurs manquantes et les suggestions de code ne font aucun appel.

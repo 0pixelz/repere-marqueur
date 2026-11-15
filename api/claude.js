@@ -15,6 +15,15 @@ const LIST_PROMPT =
   '[{"code":"BV312","name":"Deep Royal Blue","x":512,"y":430}]\n' +
   "x and y give the centre of that cap in thousandths of this image's width and height (0-1000, origin top-left).";
 
+// Nuancier fait à la main : des traits d'encre avec le code écrit à côté.
+const SWATCH_PROMPT =
+  "This photo shows a hand-made colour chart on white paper: patches or strokes of alcohol-marker ink, each with its marker code written next to it, " +
+  "by hand or printed (examples: BV312, YR57, G41, BGY18, FY01, 120).\n" +
+  "List every ink patch whose code you can read with confidence. Do not guess a code; skip patches without a readable code.\n" +
+  "Reply with ONLY a JSON array, no prose, no code fence:\n" +
+  '[{"code":"BV312","x":512,"y":430}]\n' +
+  "x and y give the centre of the INK PATCH itself (not of the written code), in thousandths of this image's width and height (0-1000, origin top-left).";
+
 function findPrompt(code) {
   return (
     "This photo shows alcohol marker caps seen from above, each with a printed colour code. Labels can be rotated or upside-down.\n" +
@@ -107,13 +116,14 @@ export default async function handler(req, res) {
     }
     let prompt;
     if (mode === "list") prompt = LIST_PROMPT;
+    else if (mode === "swatch") prompt = SWATCH_PROMPT;
     else if (mode === "find" && /^[A-Z0-9]{1,8}$/.test(code)) prompt = findPrompt(code);
     else return res.status(400).json({ error: "Demande invalide" });
     content = [
       { type: "image", source: { type: "base64", media_type: "image/jpeg", data: image } },
       { type: "text", text: prompt },
     ];
-    maxTokens = mode === "list" ? 4096 : 200;
+    maxTokens = mode === "find" ? 200 : 4096;
   }
 
   let upstream;
