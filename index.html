@@ -185,8 +185,8 @@ canvas.preview{width:100%;height:auto;border-radius:12px;display:block}
 .tabs{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--card);border-top:1px solid var(--line);
   display:flex;justify-content:center;padding-bottom:env(safe-area-inset-bottom);border-top:1.5px solid var(--stroke)}
 .tabs button{flex:1;max-width:180px;height:var(--tab-h);min-height:0;border:0;border-radius:0;background:transparent;color:var(--muted);
-  font:600 11.5px var(--display);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:0}
-.tabs .ico{width:54px;height:30px;border-radius:999px;display:flex;align-items:center;justify-content:center;transition:background .15s}
+  font:600 11px var(--display);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:0}
+.tabs .ico{width:46px;height:30px;border-radius:999px;display:flex;align-items:center;justify-content:center;transition:background .15s}
 .tabs svg{width:23px;height:23px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .tabs button[aria-selected="true"]{color:var(--ink)}
 .tabs button[aria-selected="true"] .ico{background:var(--ring);color:#fff}
@@ -332,6 +332,23 @@ canvas.preview{width:100%;height:auto;border-radius:12px;display:block}
     <section class="card" id="fadeout" hidden aria-label="Fade proposé"></section>
   </div>
 
+  <!-- ============ Tons ============ -->
+  <div class="view" id="view-tons" hidden>
+    <section class="card" aria-label="Mes couleurs par luminosité">
+      <h2>Mes couleurs par ton</h2>
+      <p>Tes marqueurs rangés du plus clair au plus foncé. Touche une ligne pour les voir sur la photo de ta trousse.</p>
+      <div class="chips" id="tondim">
+        <button type="button" class="chip word" data-dim="bri" aria-pressed="true">Par luminosité</button>
+        <button type="button" class="chip word" data-dim="sat" aria-pressed="false">Par saturation</button>
+      </div>
+      <div class="chips" id="tonfam"></div>
+      <p class="status" id="tonnote"></p>
+    </section>
+    <section class="card" id="toncard" hidden aria-label="Niveaux">
+      <div class="frows" id="tonrows"></div>
+    </section>
+  </div>
+
   <!-- ============ Guide ============ -->
   <div class="view" id="view-guide" hidden>
     <section class="card" aria-label="Lire un code">
@@ -452,6 +469,9 @@ canvas.preview{width:100%;height:auto;border-radius:12px;display:block}
   <button role="tab" data-view="fade" aria-selected="false">
     <span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="7" cy="12" r="4.5"/><circle cx="12" cy="12" r="4.5" fill="currentColor" fill-opacity=".35"/><circle cx="17" cy="12" r="4.5" fill="currentColor"/></svg></span>Fade
   </button>
+  <button role="tab" data-view="tons" aria-selected="false">
+    <span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor" stroke="none"/></svg></span>Tons
+  </button>
   <button role="tab" data-view="guide" aria-selected="false">
     <span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6.500C9.8 5 7.3 4.6 4 5v13c3.3-.4 5.8 0 8 1.5 2.2-1.5 4.7-1.9 8-1.500V5c-3.3-.4-5.8 0-8 1.500z"/><path d="M12 6.500v13"/></svg></span>Guide
   </button>
@@ -511,7 +531,7 @@ canvas.preview{width:100%;height:auto;border-radius:12px;display:block}
     $("scanart").hidden = total === 0;
   }
   function go(view){
-    ["accueil", "trouver", "idees", "fade", "guide", "trousse"].forEach(function(v){ $("view-" + v).hidden = v !== view; });
+    ["accueil", "trouver", "idees", "fade", "tons", "guide", "trousse"].forEach(function(v){ $("view-" + v).hidden = v !== view; });
     $("tabs").hidden = view === "accueil";
     Array.prototype.forEach.call(document.querySelectorAll(".tabs button"), function(b){
       b.setAttribute("aria-selected", b.getAttribute("data-view") === view ? "true" : "false");
@@ -1415,6 +1435,52 @@ canvas.preview{width:100%;height:auto;border-radius:12px;display:block}
     var n = parseInt(String(hex || "#888888").slice(1), 16);
     return ((n >> 16) * 299 + ((n >> 8) & 255) * 587 + (n & 255) * 114) / 1000 > 150 ? "#1c1c1c" : "#ffffff";
   }
+  /* ---- Tons tab: every marker by brightness level (or by saturation level) ---- */
+  var tonDim = "bri", tonFam = "";
+  function showTons(){
+    var seen = {}, all = [], fams = {};
+    allItems().forEach(function(it){
+      if (it.empty || seen[it.code]) return;
+      var d = decode(it.code); if (!d || d.special) return;
+      seen[it.code] = true; fams[d.fam] = true; all.push({ it: it, fam: d.fam, sat: d.sat, bri: d.bri });
+    });
+    var fb = $("tonfam"); fb.innerHTML = "";
+    if (tonFam && !fams[tonFam]) tonFam = "";
+    [""].concat(Object.keys(fams).sort()).forEach(function(f){
+      var b = document.createElement("button"); b.type = "button"; b.className = "chip"; b.textContent = f || "Toutes";
+      if (!f) b.className = "chip word";
+      b.setAttribute("aria-pressed", f === tonFam ? "true" : "false");
+      b.addEventListener("click", function(){ tonFam = f; showTons(); });
+      fb.appendChild(b);
+    });
+    Array.prototype.forEach.call($("tondim").children, function(b){ b.setAttribute("aria-pressed", b.getAttribute("data-dim") === tonDim ? "true" : "false"); });
+    var list = all.filter(function(x){ return !tonFam || x.fam === tonFam; });
+    var box = $("tonrows"); box.innerHTML = ""; $("toncard").hidden = !list.length;
+    $("tonnote").textContent = !all.length ? "Analyse ta trousse pour voir tes couleurs par ton." :
+      (tonDim === "bri" ? "Luminosité : 0 = très clair, 16 = très foncé." : "Saturation : 0 = teinte pure, 9 = très grisée.") +
+      (tonFam && FAM[tonFam] ? " Famille " + tonFam + " : " + FAM[tonFam][0] + "." : "");
+    var max = tonDim === "bri" ? 16 : 9, other = tonDim === "bri" ? "sat" : "bri";
+    for (var lv = 0; lv <= max; lv++) (function(lv){
+      var g = list.filter(function(x){ return x[tonDim] === lv; });
+      if (!g.length) return;
+      g.sort(function(a, b){ return a.fam === b.fam ? a[other] - b[other] : (a.fam < b.fam ? -1 : 1); });
+      var row = document.createElement("div"); row.className = "frow";
+      var t = document.createElement("strong");
+      t.textContent = (tonDim === "bri" ? "Luminosité " + lv + " · " + briWord(lv) : "Saturation " + lv + " · " + satWord(lv)) + " · " + g.length + (g.length > 1 ? " marqueurs" : " marqueur");
+      row.appendChild(t);
+      var sw = document.createElement("div"); sw.className = "sw";
+      g.forEach(function(x){
+        var sp = document.createElement("span"), d = document.createElement("i");
+        d.className = "dot"; d.style.background = x.it.hex || "transparent";
+        sp.appendChild(d); sp.appendChild(document.createTextNode(x.it.code)); sw.appendChild(sp);
+      });
+      row.appendChild(sw);
+      var items = g.map(function(x){ return x.it; });
+      row.addEventListener("click", function(){ showOnPhoto(items, 0); });
+      box.appendChild(row);
+    })(lv);
+  }
+
   /* ---- Fade tab: from the marker in hand, which ones to take out next ---- */
   function makeFade(raw){
     var d = decode(raw);
@@ -1716,7 +1782,7 @@ canvas.preview{width:100%;height:auto;border-radius:12px;display:block}
     $("todo").hidden = !unread.length;
     $("todotitle").textContent = unread.length + (unread.length > 1 ? " capuchons à vérifier" : " capuchon à vérifier");
     index.forEach(function(it){ it.kit = photo.key; });
-    showKits(); showFades(); showDecode($("dec").value); showPals(); showMissing();
+    showKits(); showFades(); showDecode($("dec").value); showPals(); showMissing(); showTons();
     $("stagecard").hidden = !photo.ready; $("thumb").hidden = !photo.ready; $("scan").hidden = !photo.ready;
     $("stagetitle").textContent = kits.length > 1 ? kitName(photo.key) : "Toute la trousse";
     var ni = Object.keys(inks).length; $("swclear").hidden = !ni;
@@ -1816,6 +1882,9 @@ canvas.preview{width:100%;height:auto;border-radius:12px;display:block}
   $("drawchip").addEventListener("click", function(){ $("drawfile").click(); });
   $("drawfile").addEventListener("change", function(){ attach(this); });
   $("drawdel").addEventListener("click", detach);
+  Array.prototype.forEach.call($("tondim").children, function(b){
+    b.addEventListener("click", function(){ tonDim = b.getAttribute("data-dim"); showTons(); });
+  });
   $("fadeform").addEventListener("submit", function(e){ e.preventDefault(); $("fadecode").blur(); showFade($("fadecode").value); });
   $("fadebtn").addEventListener("click", function(){ var h = hits[sel]; if (!h || h.unread) return; go("fade"); showFade(h.code); });
   $("blend").addEventListener("click", function(){
