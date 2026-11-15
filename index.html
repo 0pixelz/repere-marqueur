@@ -7,27 +7,32 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Repère">
-<meta name="theme-color" content="#f4f2ee" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#14171d" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#e8336d" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#b3204f" media="(prefers-color-scheme: dark)">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-180.png">
 <title>Repère-marqueur</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&family=DM+Mono:wght@500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&family=DM+Mono:wght@500&display=swap" rel="stylesheet">
 <style>
-/* Layout: phone app. Fixed title bar, three views, tab bar at the bottom. */
+/* Layout: phone app. Sunset title bar, three views, tab bar at the bottom.
+   Look: island palette — sand, lagoon, hibiscus, sun — with round, marker-like shapes. */
 :root{
-  --paper:#f4f2ee; --card:#ffffff; --ink:#1c2230; --muted:#667085; --line:#dcd8d0;
-  --accent:#1f5c7a; --accent-ink:#ffffff; --ring:#e5141b; --warn:#9a5b00;
-  --display:"Bricolage Grotesque","Avenir Next","Segoe UI",sans-serif;
+  --paper:#fff7ec; --card:#ffffff; --ink:#1b2a3d; --muted:#667a8e; --line:#f1e1c9;
+  --accent:#0b8f8f; --accent-ink:#ffffff; --hibiscus:#e8336d; --sun:#f59e0b; --ring:#e5141b; --warn:#a85400;
+  --sunset:linear-gradient(100deg,#e8336d 0%,#f2662e 55%,#f59e0b 100%);
+  --shadow:0 6px 18px rgba(120,70,20,.10);
+  --display:"Fredoka","Avenir Next Rounded","Segoe UI",sans-serif;
   --body:"DM Sans","Helvetica Neue",Arial,sans-serif;
   --mono:"DM Mono",ui-monospace,Menlo,monospace;
   --tab-h:62px;
 }
 @media (prefers-color-scheme: dark){
   :root{
-    --paper:#14171d; --card:#1e232c; --ink:#eceef2; --muted:#9aa3b2; --line:#333a47;
-    --accent:#6fb7d8; --accent-ink:#0d1a22; --ring:#ff3b41; --warn:#f0b455;
+    --paper:#0e1b2c; --card:#16283f; --ink:#f6efe3; --muted:#9db0c6; --line:#263f5e;
+    --accent:#35d6c8; --accent-ink:#05232a; --hibiscus:#ff6f96; --sun:#ffc24d; --ring:#ff3b41; --warn:#ffb65c;
+    --sunset:linear-gradient(100deg,#b3204f 0%,#c4481c 55%,#c47a06 100%);
+    --shadow:0 6px 18px rgba(0,0,0,.35);
     color-scheme:dark;
   }
 }
@@ -35,23 +40,25 @@
 html,body{margin:0;height:100%}
 body{background:var(--paper);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.45;
   -webkit-text-size-adjust:100%;overscroll-behavior-y:none}
-.topbar{position:sticky;top:0;z-index:5;background:var(--paper);border-bottom:1px solid var(--line);
-  padding:calc(env(safe-area-inset-top) + 10px) 16px 10px;display:flex;align-items:baseline;gap:10px;justify-content:space-between}
-.topbar h1{font-family:var(--display);font-weight:800;font-size:22px;line-height:1.1;margin:0}
-.topbar small{font:500 13px var(--mono);color:var(--muted)}
-main{max-width:640px;margin:0 auto;padding:14px 16px calc(var(--tab-h) + env(safe-area-inset-bottom) + 24px)}
+.topbar{position:sticky;top:0;z-index:5;background:var(--sunset);color:#fff;
+  padding:calc(env(safe-area-inset-top) + 12px) 16px 12px;display:flex;align-items:center;gap:10px;justify-content:space-between;
+  border-radius:0 0 22px 22px;box-shadow:var(--shadow)}
+.topbar h1{font-family:var(--display);font-weight:700;font-size:23px;line-height:1.1;margin:0;text-shadow:0 1px 2px rgba(0,0,0,.25)}
+.topbar small{font:500 12px var(--mono);color:#fff;background:rgba(0,0,0,.28);padding:5px 10px;border-radius:999px}
+.topbar small:empty{display:none}
+main{max-width:640px;margin:0 auto;padding:16px 16px calc(var(--tab-h) + env(safe-area-inset-bottom) + 24px)}
 .view{display:flex;flex-direction:column;gap:14px}
-h2{font-family:var(--display);font-weight:600;font-size:17px;margin:0}
+h2{font-family:var(--display);font-weight:600;font-size:18px;margin:0}
 p{margin:0}
-.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow);padding:16px;display:flex;flex-direction:column;gap:12px}
 .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .search{display:flex;gap:8px}
-.search input,.ask textarea{flex:1;min-width:0;padding:12px 14px;border-radius:12px;border:2px solid var(--line);background:var(--paper);color:var(--ink)}
+.search input,.ask textarea{flex:1;min-width:0;padding:12px 16px;border-radius:999px;border:2px solid var(--line);background:var(--paper);color:var(--ink)}
 .search input{font:500 20px var(--mono);letter-spacing:.04em;text-transform:uppercase}
 .search input::placeholder{text-transform:none;letter-spacing:0;font-family:var(--body);font-size:16px;color:var(--muted)}
 .ask{display:flex;flex-direction:column;gap:8px}
 .ask textarea{font:400 16px var(--body);resize:none;min-height:76px}
-button,.filebtn{font:700 15px var(--body);border-radius:12px;border:2px solid var(--accent);padding:12px 16px;cursor:pointer;background:var(--accent);color:var(--accent-ink);min-height:46px}
+button,.filebtn{font:700 15px var(--body);border-radius:999px;border:2px solid var(--accent);padding:12px 16px;cursor:pointer;background:var(--accent);color:var(--accent-ink);min-height:46px}
 button.ghost,.filebtn{background:transparent;color:var(--accent)}
 .filebtn{display:inline-flex;align-items:center}
 button:disabled{opacity:.45;cursor:default}
@@ -59,14 +66,14 @@ button:focus-visible,.filebtn:focus-within,input:focus-visible,textarea:focus-vi
 .filebtn input{position:absolute;opacity:0;width:1px;height:1px}
 .status{font-size:14px;color:var(--muted);min-height:20px}
 .status.warn{color:var(--warn)}
-.bar{height:6px;border-radius:3px;background:var(--line);overflow:hidden}
-.bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .3s}
+.bar{height:8px;border-radius:4px;background:var(--line);overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--sunset);transition:width .3s}
 .chips{display:flex;gap:6px;flex-wrap:wrap}
 .chip{font:500 14px var(--mono);padding:8px 12px;min-height:0;border-radius:999px;border:1px solid var(--line);background:var(--paper);color:var(--ink);cursor:pointer}
 .chip.word{font-family:var(--body)}
 .chip[aria-pressed="true"]{border-color:var(--ring);color:var(--ring);border-width:2px}
 .found{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.found b{font:500 26px var(--mono);color:var(--ring)}
+.found b{font:500 26px var(--mono);color:var(--hibiscus)}
 .found span{color:var(--muted)}
 .dot{width:22px;height:22px;border-radius:50%;border:1px solid var(--line);flex:none;display:inline-block}
 #zoom{width:100%;aspect-ratio:1/1;border-radius:12px;display:block;background:var(--line)}
@@ -78,7 +85,7 @@ button:focus-visible,.filebtn:focus-within,input:focus-visible,textarea:focus-vi
 @keyframes pulse{0%{box-shadow:0 0 0 2px #fff,0 0 0 2px #fff inset,0 0 0 0 rgba(229,20,27,.7)}100%{box-shadow:0 0 0 2px #fff,0 0 0 2px #fff inset,0 0 0 22px rgba(229,20,27,0)}}
 /* first launch */
 .welcome{gap:14px;padding:20px 16px}
-.welcome h2{font-size:22px;font-weight:800;line-height:1.15;text-wrap:balance}
+.welcome h2{font-size:24px;font-weight:700;line-height:1.15;text-wrap:balance}
 .tips{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:6px;color:var(--muted)}
 .filebtn.solid{background:var(--accent);color:var(--accent-ink)}
 .welcome .filebtn{justify-content:center;min-height:52px;font-size:16px}
@@ -86,7 +93,7 @@ button:focus-visible,.filebtn:focus-within,input:focus-visible,textarea:focus-vi
 /* assistant chat */
 .chat{display:flex;flex-direction:column;gap:10px}
 .msg{max-width:92%;padding:11px 14px;border-radius:18px;display:flex;flex-direction:column;gap:10px;overflow-wrap:anywhere}
-.msg.me{align-self:flex-end;background:var(--accent);color:var(--accent-ink);border-bottom-right-radius:6px}
+.msg.me{align-self:flex-end;background:var(--sunset);color:#fff;border-bottom-right-radius:6px}
 .msg.bot{align-self:flex-start;background:var(--card);border:1px solid var(--line);border-bottom-left-radius:6px}
 .msg.bot.wide{max-width:100%;width:100%}
 .msg.warn{color:var(--warn)}
@@ -109,16 +116,36 @@ button:focus-visible,.filebtn:focus-within,input:focus-visible,textarea:focus-vi
 .grid .dot{width:26px;height:26px}
 /* tab bar */
 .tabs{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--card);border-top:1px solid var(--line);
-  display:flex;justify-content:center;padding-bottom:env(safe-area-inset-bottom)}
+  display:flex;justify-content:center;padding-bottom:env(safe-area-inset-bottom);border-radius:22px 22px 0 0;box-shadow:0 -6px 18px rgba(120,70,20,.08)}
 .tabs button{flex:1;max-width:220px;height:var(--tab-h);min-height:0;border:0;border-radius:0;background:transparent;color:var(--muted);
-  font:700 12px var(--body);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:0}
+  font:600 12px var(--display);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:0}
 .tabs svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.tabs button[aria-selected="true"]{color:var(--accent)}
-@media (prefers-reduced-motion: reduce){.ring.sel{animation:none}.bar i{transition:none}}
+.tabs button[aria-selected="true"]{color:var(--hibiscus)}
+.tabs button[aria-selected="true"] svg{transform:translateY(-1px) scale(1.12)}
+/* loading: a marker draws a wave of colour */
+.splash{position:fixed;inset:0;z-index:20;background:var(--paper);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;
+  padding:24px;transition:opacity .45s ease}
+.splash.out{opacity:0;pointer-events:none}
+.splash strong{font:700 30px var(--display);background:var(--sunset);-webkit-background-clip:text;background-clip:text;color:transparent}
+.splash span{color:var(--muted);font-size:15px}
+.art{width:min(320px,80vw);display:block;overflow:visible}
+.art.small{width:min(220px,60vw);margin:0 auto}
+.art .ink{fill:none;stroke-width:14;stroke-linecap:round;stroke-dasharray:1;stroke-dashoffset:1;animation:ink 2.4s ease-in-out infinite}
+.art .pen{offset-path:path("M20 110 C 60 30, 100 30, 130 90 S 200 150, 230 70 S 270 40, 285 60");offset-rotate:0deg;animation:pen 2.4s ease-in-out infinite}
+@supports not (offset-path:path("M0 0")){.art .pen{display:none}}
+@keyframes ink{0%{stroke-dashoffset:1;opacity:1}70%,88%{stroke-dashoffset:0;opacity:1}100%{stroke-dashoffset:0;opacity:0}}
+@keyframes pen{0%{offset-distance:0%}70%,100%{offset-distance:100%}}
+@media (prefers-reduced-motion: reduce){.ring.sel{animation:none}.bar i{transition:none}.art .ink{animation:none;stroke-dashoffset:0}.art .pen{animation:none;offset-distance:100%}.splash{transition:none}}
 [hidden]{display:none!important}
 </style>
 </head>
 <body>
+<div class="splash" id="splash" role="status" aria-label="Chargement">
+  <div id="splashart"></div>
+  <strong>Repère-marqueur</strong>
+  <span>On sort les couleurs…</span>
+</div>
+
 <header class="topbar">
   <h1>Repère-marqueur</h1>
   <small id="count"></small>
@@ -195,6 +222,7 @@ button:focus-visible,.filebtn:focus-within,input:focus-visible,textarea:focus-vi
     <section class="card" aria-label="Photo de la trousse">
       <h2>Ma photo</h2>
       <p class="status" id="scanstatus" role="status"></p>
+      <div id="scanart" hidden></div>
       <div class="bar" id="bar2" hidden><i id="barfill2"></i></div>
       <img id="thumb" class="thumb" alt="Ta photo actuelle">
       <button id="scan" type="button">Analyser la photo</button>
@@ -237,6 +265,31 @@ button:focus-visible,.filebtn:focus-within,input:focus-visible,textarea:focus-vi
   var unread = [];     // {x, y, unread:true} — caps seen on the photo whose code could not be read
   var hits = [], sel = 0, busy = false, lastQuery = "", numbered = false;
 
+  /* ---- loading art: a marker drawing a wave (same drawing for the splash and the analysis) ---- */
+  function art(id, small){
+    var d = "M20 110 C 60 30, 100 30, 130 90 S 200 150, 230 70 S 270 40, 285 60";
+    return '<svg class="art' + (small ? " small" : "") + '" viewBox="0 0 300 170" aria-hidden="true">' +
+      '<defs><linearGradient id="' + id + '" x1="0" x2="1" y1="0" y2="0">' +
+      '<stop offset="0" stop-color="#e8336d"/><stop offset=".3" stop-color="#f2662e"/><stop offset=".55" stop-color="#f5b70b"/>' +
+      '<stop offset=".8" stop-color="#19b8a6"/><stop offset="1" stop-color="#2f7fe0"/></linearGradient></defs>' +
+      '<path class="ink" pathLength="1" stroke="url(#' + id + ')" d="' + d + '"/>' +
+      '<g class="pen"><g transform="rotate(35)">' +
+      '<polygon points="0,0 -6,-15 6,-15" fill="#e8336d"/>' +
+      '<rect x="-8" y="-74" width="16" height="60" rx="4" fill="#ffffff" stroke="#1b2a3d" stroke-width="2.5"/>' +
+      '<rect x="-8" y="-42" width="16" height="9" fill="#1b2a3d"/>' +
+      '<rect x="-9" y="-90" width="18" height="18" rx="5" fill="#e8336d" stroke="#1b2a3d" stroke-width="2.5"/>' +
+      '</g></g></svg>';
+  }
+  $("splashart").innerHTML = art("g-splash", false);
+  $("scanart").innerHTML = art("g-scan", true);
+  var splashStart = Date.now();
+  function hideSplash(){
+    setTimeout(function(){
+      $("splash").classList.add("out");
+      setTimeout(function(){ $("splash").hidden = true; }, 500);
+    }, Math.max(0, 1500 - (Date.now() - splashStart)));
+  }
+
   function say(msg, warn){
     ["status", "scanstatus"].forEach(function(id){ var s = $(id); s.textContent = msg || ""; s.className = "status" + (warn ? " warn" : ""); });
   }
@@ -245,6 +298,7 @@ button:focus-visible,.filebtn:focus-within,input:focus-visible,textarea:focus-vi
       $(p[0]).hidden = total === 0;
       $(p[1]).style.width = total ? Math.round(done / total * 100) + "%" : "0";
     });
+    $("scanart").hidden = total === 0;
   }
   function go(view){
     ["accueil", "trouver", "idees", "trousse"].forEach(function(v){ $("view-" + v).hidden = v !== view; });
@@ -733,7 +787,7 @@ button:focus-visible,.filebtn:focus-within,input:focus-visible,textarea:focus-vi
   photo.img.addEventListener("load", photoLoaded);
   photo.img.addEventListener("error", function(){ say("Cette image ne peut pas être ouverte. Choisis une photo JPEG ou PNG.", true); });
   // first launch: no photo yet, so ask for one; otherwise reopen the user's own photo
-  loadPhoto().then(function(blob){ if (blob) { go("trouver"); show(blob); } else go("accueil"); });
+  loadPhoto().then(function(blob){ if (blob) { go("trouver"); show(blob); } else go("accueil"); hideSplash(); });
 })();
 </script>
 </body>
