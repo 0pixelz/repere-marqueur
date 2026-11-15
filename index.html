@@ -42,15 +42,16 @@ body{background:var(--paper);color:var(--ink);font-family:var(--body);font-size:
   -webkit-text-size-adjust:100%;overscroll-behavior-y:none}
 .topbar{position:sticky;top:0;z-index:5;background:var(--paper);border-bottom:1.5px solid var(--stroke);
   padding:calc(env(safe-area-inset-top) + 10px) 16px 10px;display:flex;align-items:center;gap:10px;justify-content:space-between}
-.brand{display:flex;align-items:center;gap:10px;min-width:0}
+.brand{display:flex;align-items:center;gap:10px;min-width:0;flex:1}
 .logo{width:36px;height:36px;flex:none}
-.topbar h1{font-family:var(--display);font-weight:700;font-size:20px;line-height:1.1;margin:0;white-space:nowrap;padding-bottom:5px;
+.topbar h1{font-family:var(--display);font-weight:700;font-size:20px;line-height:1.1;margin:0;white-space:nowrap;padding-bottom:5px;min-width:0;overflow:hidden;text-overflow:ellipsis;
   background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 8' preserveAspectRatio='none'%3E%3Cpath d='M2 5 C 20 1, 34 7, 52 4 S 88 2, 118 5' fill='none' stroke='%23e5141b' stroke-width='2.6' stroke-linecap='round'/%3E%3C/svg%3E") left bottom/100% 7px no-repeat}
 .meta{display:flex;align-items:center;gap:6px;flex:none}
 .topbar small{font:500 12px var(--mono);color:var(--muted);border:1.5px solid var(--line);padding:5px 9px;border-radius:999px;white-space:nowrap}
 .topbar small:empty{display:none}
 .badge{min-height:0;font:700 12px var(--body);padding:5px 9px;border-radius:999px;border:0;background:var(--ring);color:#fff;white-space:nowrap}
-@media (max-width:380px){.topbar h1{font-size:18px}.logo{width:32px;height:32px}}
+#count:not(:empty)::after{content:" couleurs"}
+@media (max-width:520px){#count:not(:empty)::after{content:""}.topbar h1{font-size:18px}.logo{width:32px;height:32px}.brand{gap:8px}}
 main{max-width:640px;margin:0 auto;padding:16px 16px calc(var(--tab-h) + env(safe-area-inset-bottom) + 24px)}
 .view{display:flex;flex-direction:column;gap:14px}
 h2{font-family:var(--display);font-weight:600;font-size:18px;margin:0}
@@ -1684,7 +1685,8 @@ canvas.preview{width:100%;height:auto;border-radius:12px;display:block}
   function refresh(){
     $("scan").textContent = index.length ? "Réanalyser la photo" : "Analyser la photo";
     $("scan").className = index.length ? "ghost" : "";
-    $("count").textContent = index.length ? index.length + " couleurs" : "";
+    $("count").textContent = index.length ? String(index.length) : "";
+    $("count").title = index.length + " couleurs dans cette trousse";
     $("todobadge").hidden = !unread.length; $("todobadge").textContent = unread.length + " à vérifier";
     $("todo").hidden = !unread.length;
     $("todotitle").textContent = unread.length + (unread.length > 1 ? " capuchons à vérifier" : " capuchon à vérifier");
