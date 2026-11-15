@@ -8,7 +8,9 @@ const MAX_IMAGE_BASE64 = 3_500_000; // ~2,6 Mo d'image, sous la limite de 4,5 Mo
 const LIST_PROMPT =
   "This photo shows alcohol markers standing upright in a case, seen from above. Each round cap carries a printed label with a colour code " +
   "(examples: BV312, YR57, G41, BGY18, FY01, 120, 0) and a colour name. Labels can be rotated or upside-down.\n" +
-  "List every cap whose code you can read with confidence. Do not guess: skip caps that are blurry or cut by the image edge.\n" +
+  "List every cap whose code you can read with confidence. Do not guess a code.\n" +
+  'For every cap that is fully visible but whose code you cannot read (glare, shiny cap, blur, label worn off), add an item with "code":"?" and an empty name, at its centre. ' +
+  "Leave out caps that are cut by the image edge.\n" +
   "Reply with ONLY a JSON array, no prose, no code fence:\n" +
   '[{"code":"BV312","name":"Deep Royal Blue","x":512,"y":430}]\n' +
   "x and y give the centre of that cap in thousandths of this image's width and height (0-1000, origin top-left).";

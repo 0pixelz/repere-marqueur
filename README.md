@@ -13,7 +13,7 @@ Tape un code de couleur (ex. `BV312`) ou un nom (ex. `Cerulean`) : l'app encercl
 
 - **Trouver** : recherche par code ou par nom, gros plan et cercle rouge sur la photo.
 - **Assistant** : une conversation. Demande un sujet (« un nuage ») ou un fade à partir d'un code ; Claude choisit 3 à 7 marqueurs de ta trousse et la réponse les montre encerclés en rouge sur la photo.
-- **Trousse** : changer la photo, lancer l'analyse, voir toutes les couleurs lues.
+- **Trousse** : changer la photo, lancer l'analyse, voir toutes les couleurs lues. Les capuchons vus mais non lus (reflet, flou) sont signalés ; tu tapes leur code à la main.
 
 Sur iPhone : Safari → Partager → « Sur l'écran d'accueil » pour l'ouvrir comme une app.
 

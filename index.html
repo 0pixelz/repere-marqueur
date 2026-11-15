@@ -134,6 +134,11 @@ button:focus-visible,.filebtn:focus-within,input:focus-visible,textarea:focus-vi
     <section class="card" id="hitcard" hidden aria-label="Résultat">
       <div class="found"><span class="dot" id="hitdot"></span><b id="hitcode"></b><span id="hitname"></span></div>
       <canvas id="zoom" width="720" height="720"></canvas>
+      <form class="search" id="fixbox" hidden>
+        <input id="fixcode" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="Code du vrai marqueur" aria-label="Code lu sur le marqueur">
+        <button type="submit">Enregistrer</button>
+      </form>
+      <button id="fixskip" type="button" class="ghost" hidden>Ce n'est pas un marqueur</button>
       <button id="blend" type="button" class="ghost">Quoi utiliser avec cette couleur ?</button>
     </section>
 
@@ -173,6 +178,11 @@ button:focus-visible,.filebtn:focus-within,input:focus-visible,textarea:focus-vi
         <label class="filebtn">Changer de photo<input id="file" type="file" accept="image/*"></label>
       </div>
     </section>
+    <section class="card" id="todo" hidden aria-label="Capuchons non lus">
+      <h2 id="todotitle"></h2>
+      <p class="status">Reflet, flou ou étiquette effacée. Regarde le vrai marqueur et tape son code pour l'ajouter.</p>
+      <button id="todogo" type="button">Les compléter</button>
+    </section>
     <section class="card" id="invcard" hidden aria-label="Mes couleurs">
       <h2>Mes couleurs</h2>
       <div class="grid" id="inv"></div>
@@ -198,6 +208,7 @@ button:focus-visible,.filebtn:focus-within,input:focus-visible,textarea:focus-vi
   var $ = function(id){ return document.getElementById(id); };
   var photo = { img: $("photo"), key: "defaut", ready: false };
   var index = [];      // {code, name, x, y, hex} — x,y in 0..1 of the whole photo
+  var unread = [];     // {x, y, unread:true} — caps seen on the photo whose code could not be read
   var hits = [], sel = 0, busy = false, lastQuery = "", numbered = false;
 
   function say(msg, warn){
@@ -240,10 +251,17 @@ button:focus-visible,.filebtn:focus-within,input:focus-visible,textarea:focus-vi
 
   /* ---- cache of the scan, per photo, in this browser only ---- */
   function loadCache(){
-    try { var raw = localStorage.getItem("repere:" + photo.key); index = raw ? JSON.parse(raw) : []; }
-    catch (e) { index = []; }
+    index = []; unread = [];
+    try {
+      var o = JSON.parse(localStorage.getItem("repere:" + photo.key) || "[]");
+      if (Array.isArray(o)) index = o; else { index = o.index || []; unread = o.unread || []; }
+    } catch (e) {}
   }
-  function saveCache(){ try { localStorage.setItem("repere:" + photo.key, JSON.stringify(index)); } catch (e) {} }
+  function saveCache(){ try { localStorage.setItem("repere:" + photo.key, JSON.stringify({ index: index, unread: unread })); } catch (e) {} }
+  function near(a, b){
+    var r = photo.img.naturalHeight / photo.img.naturalWidth, dx = a.x - b.x, dy = (a.y - b.y) * r;
+    return Math.sqrt(dx * dx + dy * dy) < 0.02;
+  }
 
   /* ---- colour of a cap, measured on the photo (label white and printed text are ignored) ---- */
   var probe = document.createElement("canvas"); probe.width = probe.height = 24;
@@ -335,7 +353,7 @@ button:focus-visible,.filebtn:focus-within,input:focus-visible,textarea:focus-vi
   async function scan(){
     if (busy || !ready()) return;
     busy = true; lock(true);
-    var tiles = makeTiles(), done = 0, best = {}, failed = 0, stop = null;
+    var tiles = makeTiles(), done = 0, best = {}, unk = [], failed = 0, stop = null;
     say("Lecture des étiquettes : 0 / " + tiles.length + " zones");
     progress(0, tiles.length);
     var W = photo.img.naturalWidth, H = photo.img.naturalHeight;
@@ -346,9 +364,13 @@ button:focus-visible,.filebtn:focus-within,input:focus-visible,textarea:focus-vi
         if (!Array.isArray(arr)) { failed++; }
         else arr.forEach(function(it){
           var code = canon(it && it.code), x = Number(it && it.x), y = Number(it && it.y);
-          if (!code || !(x >= 0 && x <= 1000 && y >= 0 && y <= 1000)) return;
+          if (!(x >= 0 && x <= 1000 && y >= 0 && y <= 1000)) return;
           var edge = Math.min(x, 1000 - x, y, 1000 - y);
-          if (best[code] && best[code].edge >= edge) return;
+          if (String((it && it.code) || "").trim() === "?"){
+            if (edge > 60) unk.push({ edge: edge, x: (t.x + x / 1000 * t.w) / W, y: (t.y + y / 1000 * t.h) / H });
+            return;
+          }
+          if (!code || (best[code] && best[code].edge >= edge)) return;
           best[code] = { code: code, name: String(it.name || "").slice(0, 40), edge: edge,
             x: (t.x + x / 1000 * t.w) / W, y: (t.y + y / 1000 * t.h) / H };
         });
@@ -363,8 +385,14 @@ button:focus-visible,.filebtn:focus-within,input:focus-visible,textarea:focus-vi
     var list = Object.keys(best).map(function(k){ var b = best[k]; return { code: b.code, name: b.name, x: b.x, y: b.y }; });
     if (stop && !list.length){ say(explain(stop), true); return; }
     if (!list.length){ say("Aucun code lisible. Reprends la photo de plus près, bien éclairée.", true); return; }
+    unread = [];
+    unk.sort(function(a, b){ return b.edge - a.edge; }).forEach(function(u){
+      if (list.some(function(i){ return near(i, u); }) || unread.some(function(i){ return near(i, u); })) return;
+      unread.push({ x: u.x, y: u.y, unread: true });
+    });
     index = list; fillColours(); saveCache(); refresh();
-    say(list.length + " codes repérés" + (failed || stop ? " (certaines zones n'ont pas pu être lues)." : "."), !!(failed || stop));
+    say(list.length + " codes repérés" + (unread.length ? ", " + unread.length + " capuchons non lus (voir l'onglet Trousse)" : "") +
+      (failed || stop ? ". Certaines zones n'ont pas pu être analysées." : "."), !!(failed || stop));
     if (lastQuery) search(lastQuery);
   }
 
@@ -393,7 +421,9 @@ button:focus-visible,.filebtn:focus-within,input:focus-visible,textarea:focus-vi
     progress(0, 0); busy = false; lock(false);
     if (found){
       index = index.filter(function(i){ return i.code !== code; });
-      index.push({ code: found.code, name: "", x: found.x, y: found.y }); fillColours(); saveCache(); refresh();
+      index.push({ code: found.code, name: "", x: found.x, y: found.y });
+      unread = unread.filter(function(u){ return !near(u, found); });
+      fillColours(); saveCache(); refresh();
       search(code);
     } else say(stop ? explain(stop) : code + " n'apparaît pas sur cette photo. Vérifie le code ou reprends la photo.", true);
   }
@@ -448,8 +478,11 @@ button:focus-visible,.filebtn:focus-within,input:focus-visible,textarea:focus-vi
     var h = hits[sel];
     $("hitcard").hidden = !h;
     if (!h || !photo.ready) return;
-    $("hitcode").textContent = h.code; $("hitname").textContent = h.name || "";
-    $("hitdot").style.background = h.hex || "transparent";
+    var un = !!h.unread;
+    $("hitcode").textContent = un ? "Non lu" : h.code;
+    $("hitname").textContent = un ? "Tape le code que tu lis sur le vrai marqueur" : (h.name || "");
+    $("fixbox").hidden = !un; $("fixskip").hidden = !un; $("blend").hidden = un;
+    $("hitdot").style.background = un ? capHex(h) : (h.hex || "transparent");
     var W = photo.img.naturalWidth, H = photo.img.naturalHeight;
     var side = Math.min(W, H, Math.max(W, H) * 0.26);
     var sx = Math.max(0, Math.min(W - side, h.x * W - side / 2));
@@ -546,11 +579,36 @@ button:focus-visible,.filebtn:focus-within,input:focus-visible,textarea:focus-vi
     go("trouver");
   }
 
+  /* ---- caps the scan saw but could not read: the user types the code ---- */
+  function showUnread(i){
+    hits = unread.slice(); sel = Math.max(0, Math.min(i || 0, hits.length - 1)); numbered = true; lastQuery = "";
+    $("q").value = ""; $("deep").hidden = true; $("fixcode").value = "";
+    chipList(hits.map(function(){ return "?"; }), true);
+    say(hits.length + (hits.length > 1 ? " capuchons non lus." : " capuchon non lu.") + " Tape le code du marqueur encerclé.");
+    go("trouver");
+  }
+  function closeUnread(h){
+    unread = unread.filter(function(u){ return u !== h; });
+    saveCache(); refresh();
+    if (unread.length) showUnread(sel);
+    else { hits = []; $("chips").hidden = true; draw(); say("Tout est complété : " + index.length + " couleurs dans ta trousse."); }
+  }
+  function fixSave(){
+    var h = hits[sel]; if (!h || !h.unread) return;
+    var c = canon($("fixcode").value);
+    if (!c){ say("Tape le code écrit sur le marqueur, par exemple E85.", true); return; }
+    index = index.filter(function(i){ return i.code !== c; });
+    var it = { code: c, name: "", x: h.x, y: h.y }; it.hex = capHex(it); index.push(it);
+    $("fixcode").blur(); closeUnread(h);
+  }
+
   /* ---- Trousse: inventory ---- */
   function refresh(){
     $("scan").textContent = index.length ? "Réanalyser la photo" : "Analyser la photo";
     $("scan").className = index.length ? "ghost" : "";
-    $("count").textContent = index.length ? index.length + " couleurs" : "";
+    $("count").textContent = index.length ? index.length + " couleurs" + (unread.length ? " · " + unread.length + " non lus" : "") : "";
+    $("todo").hidden = !unread.length;
+    $("todotitle").textContent = unread.length + (unread.length > 1 ? " capuchons non lus" : " capuchon non lu");
     var box = $("inv"); box.innerHTML = ""; $("invcard").hidden = !index.length;
     index.slice().sort(function(a, b){ return a.code < b.code ? -1 : 1; }).forEach(function(it){
       var b = document.createElement("button"); b.type = "button"; b.title = it.name;
@@ -567,7 +625,7 @@ button:focus-visible,.filebtn:focus-within,input:focus-visible,textarea:focus-vi
   function lock(on){ $("scan").disabled = on; $("deep").disabled = on; $("file").disabled = on; $("askgo").disabled = on; }
   function photoLoaded(){
     photo.ready = true; loadCache(); fillColours(); refresh(); hits = []; draw();
-    say(index.length ? index.length + " codes repérés. Tape un code pour le trouver." : "Première étape : onglet Trousse, puis Analyser la photo (environ une minute, une seule fois par photo).");
+    say(index.length ? index.length + " codes repérés" + (unread.length ? ", " + unread.length + " non lus (onglet Trousse)" : "") + ". Tape un code pour le trouver." : "Première étape : onglet Trousse, puis Analyser la photo (environ une minute, une seule fois par photo).");
   }
 
   /* ---- wiring ---- */
@@ -577,6 +635,9 @@ button:focus-visible,.filebtn:focus-within,input:focus-visible,textarea:focus-vi
   $("form").addEventListener("submit", function(e){ e.preventDefault(); search($("q").value); $("q").blur(); });
   $("scan").addEventListener("click", scan);
   $("deep").addEventListener("click", deepSearch);
+  $("todogo").addEventListener("click", function(){ showUnread(0); });
+  $("fixbox").addEventListener("submit", function(e){ e.preventDefault(); fixSave(); });
+  $("fixskip").addEventListener("click", function(){ var h = hits[sel]; if (h && h.unread) closeUnread(h); });
   $("askform").addEventListener("submit", function(e){ e.preventDefault(); sendChat($("ask").value); });
   $("ask").addEventListener("keydown", function(e){ if (e.key === "Enter" && !e.shiftKey){ e.preventDefault(); sendChat($("ask").value); } });
   $("ask").addEventListener("input", function(){ this.style.height = "auto"; this.style.height = Math.min(120, this.scrollHeight) + "px"; });
