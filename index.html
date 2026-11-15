@@ -90,8 +90,14 @@ a{color:var(--ink);font-weight:700}
 .split b{display:block;font:500 28px var(--mono)}
 .split span{font-size:12px;color:var(--muted)}
 .scale{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:3px}
-.scale i{height:20px;border-radius:5px;border:1px solid var(--line)}
-.scale i.on{outline:3px solid var(--ring);outline-offset:1px}
+.scale button{height:34px;min-height:0;padding:0;border-radius:6px;border:1px solid var(--line)}
+.scale button.on{outline:3px solid var(--ring);outline-offset:1px}
+.pick{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px;border:1.5px solid var(--stroke);border-radius:12px;background:var(--paper)}
+.pick .dot{width:34px;height:34px}
+.pick div{flex:1;min-width:120px}
+.pick b{font:500 18px var(--mono);display:block}
+.pick span{font-size:13px;color:var(--muted)}
+.pick button{min-height:0;padding:9px 14px;font-size:14px}
 .legend{display:flex;justify-content:space-between;font-size:12px;color:var(--muted)}
 .frows{display:flex;flex-direction:column;gap:8px}
 .frow{display:flex;flex-direction:column;gap:8px;padding:10px;border:1.5px solid var(--line);border-radius:12px;background:var(--paper);cursor:pointer}
@@ -459,10 +465,39 @@ ul.tips{list-style:disc}
     row.addEventListener("click", function(){ showOnPhoto(items, 0); });
     return row;
   }
-  function scale(n, on, colour){
+  function scale(n, on, colour, label, pick){
     var s = document.createElement("div"); s.className = "scale";
-    for (var i = 0; i < n; i++){ var c = document.createElement("i"); c.style.background = colour(i); if (i === on) c.className = "on"; s.appendChild(c); }
+    for (var i = 0; i < n; i++) (function(i){
+      var c = document.createElement("button"); c.type = "button"; c.style.background = colour(i);
+      c.setAttribute("aria-label", label + " " + i); if (i === on) c.className = "on";
+      c.addEventListener("click", function(){ pick(i); });
+      s.appendChild(c);
+    })(i);
     return s;
+  }
+  // the marker of the case that matches a code, or the closest one in the same family
+  function pickEl(d){
+    var box = document.createElement("div"); box.className = "pick";
+    if (!index.length){ box.textContent = "Analyse ta photo pour savoir si tu as cette couleur."; return box; }
+    var it = byCode(d.code), exact = !!it;
+    if (!it){
+      var best = 1e9;
+      index.forEach(function(x){
+        var e = decode(x.code); if (!e || e.special || e.fam !== d.fam) return;
+        var dist = Math.abs(e.sat - d.sat) * 3 + Math.abs(e.bri - d.bri);
+        if (dist < best){ best = dist; it = x; }
+      });
+    }
+    if (!it){ box.textContent = "Tu n'as aucun marqueur de la famille " + d.fam + " dans ta trousse."; return box; }
+    var dot = document.createElement("i"); dot.className = "dot"; dot.style.background = it.hex || "transparent";
+    var txt = document.createElement("div"), b = document.createElement("b"), sp = document.createElement("span");
+    b.textContent = it.code;
+    sp.textContent = exact ? (it.name ? it.name + " · dans ta trousse" : "Dans ta trousse") : "Tu n'as pas " + d.code + ". C'est ton marqueur le plus proche.";
+    txt.appendChild(b); txt.appendChild(sp);
+    var go2 = document.createElement("button"); go2.type = "button"; go2.textContent = "Le trouver";
+    go2.addEventListener("click", function(){ showOnPhoto([it], 0); });
+    box.appendChild(dot); box.appendChild(txt); box.appendChild(go2);
+    return box;
   }
   function legend(a, b){ var l = document.createElement("div"); l.className = "legend"; l.innerHTML = "<span></span><span></span>"; l.firstChild.textContent = a; l.lastChild.textContent = b; return l; }
   function showDecode(raw){
@@ -482,12 +517,18 @@ ul.tips{list-style:disc}
     out.appendChild(p1);
     var p2 = document.createElement("p"); p2.textContent = "Saturation " + d.sat + " sur 9 : " + satWord(d.sat) + ". Les couleurs du même niveau se fondent bien ensemble.";
     out.appendChild(p2);
-    out.appendChild(scale(10, d.sat, function(i){ return hue < 0 ? "hsl(220 4% 62%)" : "hsl(" + hue + " " + Math.round(92 - i * 9) + "% 58%)"; }));
+    var repick = function(sat, bri){ var c = d.fam + sat + bri; $("dec").value = c; showDecode(c); };
+    out.appendChild(pickEl(d));
+    var hint = document.createElement("p"); hint.className = "status"; hint.textContent = "Touche une case pour changer la saturation ou la luminosité.";
+    out.appendChild(hint);
+    out.appendChild(scale(10, d.sat, function(i){ return hue < 0 ? "hsl(220 4% 62%)" : "hsl(" + hue + " " + Math.round(92 - i * 9) + "% 58%)"; },
+      "Saturation", function(i){ repick(i, d.bri); }));
     out.appendChild(legend("0 · pure", "9 · grisée"));
     var p3 = document.createElement("p"); p3.textContent = "Luminosité " + d.bri + " sur 16 : " + briWord(d.bri) + ". Plus le nombre est grand, plus la couleur est foncée.";
     if (d.bri > 16) p3.textContent = "Luminosité " + d.bri + " : hors de l'échelle habituelle (0 à 16). Vérifie le code.";
     out.appendChild(p3);
-    out.appendChild(scale(17, d.bri, function(i){ return "hsl(" + (hue < 0 ? 220 : hue) + " " + (hue < 0 ? 4 : 45) + "% " + Math.round(94 - i * 5) + "%)"; }));
+    out.appendChild(scale(17, d.bri, function(i){ return "hsl(" + (hue < 0 ? 220 : hue) + " " + (hue < 0 ? 4 : 45) + "% " + Math.round(94 - i * 5) + "%)"; },
+      "Luminosité", function(i){ repick(d.sat, i); }));
     out.appendChild(legend("0 · clair", "16 · foncé"));
     var mine = groups().filter(function(g){ return g.fam === d.fam; });
     if (mine.length){
