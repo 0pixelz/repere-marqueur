@@ -64,9 +64,11 @@ function chatRequest(messages, palette) {
     "Pour un coloriage déjà commencé, respecte les couleurs en place et propose la suite. " +
     "Avec une image, tu peux choisir jusqu'à 16 marqueurs ; « role » nomme alors la zone et l'usage (ex. « salopette, base », « mer, ombre »). " +
     "Si une couleur nécessaire manque dans la liste, propose la plus proche et dis-le. " +
+    "Avec une image, ajoute à chaque marqueur « points » : 1 à 4 positions [x, y] en millièmes de la largeur et de la hauteur de l'image (origine en haut à gauche), " +
+    "chacune bien à l'intérieur d'une zone à colorier avec ce marqueur, loin des traits. Pour un ton d'ombre, place le point là où l'ombre irait dans la zone. Sans image, n'ajoute pas « points ». " +
     "Pour une question générale sans choix de couleurs, laisse la liste vide. Ne traite que de dessin, de couleurs et de marqueurs.\n" +
     "Réponds UNIQUEMENT avec ce JSON, sans texte autour :\n" +
-    '{"reponse":"ta réponse, avec la technique en une phrase","marqueurs":[{"code":"B02","role":"2 à 4 mots : base claire, transition, ombre, reflet…"}]}';
+    '{"reponse":"ta réponse, avec la technique en une phrase","marqueurs":[{"code":"B02","role":"2 à 4 mots : base claire, transition, ombre, reflet…","points":[[512,430]]}]}';
   return { system, messages: turns };
 }
 

@@ -147,6 +147,8 @@ ul.tips{list-style:disc}
 .attached span{flex:1}
 .attached button{min-height:0;padding:8px 12px;font-size:13px}
 .msg.me img{max-width:180px;max-height:180px;border-radius:10px;display:block;object-fit:cover}
+.pin{position:absolute;transform:translate(-50%,-50%);width:26px;height:26px;min-height:0;padding:0;border-radius:50%;border:2px solid #fff;
+  box-shadow:0 0 0 1.5px #26272b;font:700 12px/1 var(--body);display:flex;align-items:center;justify-content:center}
 .composer textarea{flex:1;min-width:0;border:0;background:transparent;color:var(--ink);font:400 16px var(--body);resize:none;padding:10px 0;max-height:120px;outline:none}
 .composer button{width:46px;height:46px;min-height:0;padding:0;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center}
 .composer svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
@@ -924,7 +926,8 @@ ul.tips{list-style:disc}
     if (busy || !text) return;
     $("ask").value = ""; $("ask").style.height = ""; $("ideas").hidden = true;
     var mine = bubble("me", text);
-    if (drawing){ var pic = document.createElement("img"); pic.src = $("drawimg").src; pic.alt = "Ton dessin"; mine.insertBefore(pic, mine.firstChild); }
+    var sentPic = drawing ? $("drawimg").src : "";
+    if (drawing){ var pic = document.createElement("img"); pic.src = sentPic; pic.alt = "Ton dessin"; mine.insertBefore(pic, mine.firstChild); }
     if (!index.length){
       bubble("bot warn", "Je dois d'abord connaître tes couleurs : va dans l'onglet Trousse et appuie sur Analyser la photo.");
       toBottom(); return;
@@ -938,11 +941,14 @@ ul.tips{list-style:disc}
       var o = parseJson(raw, "{", "}") || { reponse: raw };
       var picks = (Array.isArray(o.marqueurs) ? o.marqueurs : []).map(function(m){
         var it = byCode(m && m.code);
-        return it ? { item: it, role: String(m.role || "").slice(0, 60) } : null;
+        var pts = (Array.isArray(m && m.points) ? m.points : []).filter(function(q){
+          return Array.isArray(q) && q[0] >= 0 && q[0] <= 1000 && q[1] >= 0 && q[1] <= 1000;
+        }).slice(0, 4);
+        return it ? { item: it, role: String(m.role || "").slice(0, 60), pts: pts } : null;
       }).filter(Boolean);
       var reply = String(o.reponse || "").slice(0, 1200) || "Voici ce que je te propose.";
       waitMsg.remove();
-      renderReply(reply, picks);
+      renderReply(reply, picks, sentPic);
       chat.push({ role: "assistant", content: reply + (picks.length ? "\nMarqueurs proposés : " + picks.map(function(p){ return p.item.code; }).join(", ") : "") });
     } catch (e) {
       chat.pop(); waitMsg.remove();
@@ -950,14 +956,38 @@ ul.tips{list-style:disc}
     }
     busy = false; $("askgo").disabled = false; toBottom();
   }
-  function renderReply(reply, picks){
+  function inkOn(hex){   // black or white text, whichever reads on this colour
+    var n = parseInt(String(hex || "#888888").slice(1), 16);
+    return ((n >> 16) * 299 + ((n >> 8) & 255) * 587 + (n & 255) * 114) / 1000 > 150 ? "#1c1c1c" : "#ffffff";
+  }
+  function renderReply(reply, picks, pic){
     var m = bubble("bot" + (picks.length ? " wide" : ""), reply);
     if (!picks.length) return;
     var items = picks.map(function(p){ return p.item; });
     var cols = items.map(function(i){ return i.hex || "#888888"; });
-    var fade = document.createElement("div"); fade.className = "fade";
-    fade.style.background = cols.length > 1 ? "linear-gradient(90deg," + cols.join(",") + ")" : cols[0];
-    m.appendChild(fade);
+    var pinned = pic && picks.some(function(p){ return p.pts && p.pts.length; });
+    if (pinned){
+      // colour-by-number guide: a dot of each marker's colour on the zone it is meant for
+      var cap = document.createElement("p"); cap.className = "status"; cap.textContent = "Où poser chaque couleur (les numéros renvoient à la liste) :";
+      m.appendChild(cap);
+      var dr = document.createElement("div"); dr.className = "stage";
+      var di = document.createElement("img"); di.src = pic; di.alt = "Ton dessin avec une pastille par couleur proposée"; dr.appendChild(di);
+      picks.forEach(function(p, i){
+        (p.pts || []).forEach(function(q){
+          var pin = document.createElement("button"); pin.type = "button"; pin.className = "pin";
+          pin.style.left = (q[0] / 10) + "%"; pin.style.top = (q[1] / 10) + "%";
+          pin.style.background = p.item.hex || "#888888"; pin.style.color = inkOn(p.item.hex);
+          pin.textContent = i + 1; pin.setAttribute("aria-label", p.item.code + " : " + p.role);
+          pin.addEventListener("click", function(){ showOnPhoto(items, i); });
+          dr.appendChild(pin);
+        });
+      });
+      m.appendChild(dr);
+    } else {
+      var fade = document.createElement("div"); fade.className = "fade";
+      fade.style.background = cols.length > 1 ? "linear-gradient(90deg," + cols.join(",") + ")" : cols[0];
+      m.appendChild(fade);
+    }
     var ol = document.createElement("ol"); ol.className = "steps";
     picks.forEach(function(p, i){
       var li = document.createElement("li");
