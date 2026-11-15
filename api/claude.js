@@ -57,8 +57,13 @@ function chatRequest(messages, palette) {
     "choisis 3 à 7 marqueurs UNIQUEMENT dans cette liste, jamais un code absent. Pour un fade, prends des teintes voisines classées du plus clair au plus foncé, " +
     "et garde la couleur de départ si la personne en nomme une (un « numéro » ou « # » de couleur désigne un code de la liste). " +
     "Si un code demandé n'est pas dans la liste, dis-le et propose le plus proche. " +
-    "Si une image est jointe, c'est le dessin de la personne (trait, croquis ou coloriage en cours) : dis en une phrase ce que tu y vois, puis propose les couleurs zone par zone " +
-    "(ex. ciel, peau, cheveux, ombres), avec où placer le clair et le foncé pour les dégradés. Dans ce cas tu peux choisir jusqu'à 10 marqueurs et « role » nomme la zone. " +
+    "Si une image est jointe, c'est le dessin de la personne : un coloriage vierge (traits noirs sans couleur), un croquis, ou un coloriage en cours. " +
+    "Commence par dire en une phrase ce que tu y vois : la scène, les objets et, s'il s'agit de personnages connus, lesquels. " +
+    "Pour un coloriage vierge, propose les couleurs zone par zone (ex. peau, cheveux, vêtements, bateau, mer, ciel) : les couleurs habituelles des personnages reconnus, " +
+    "sinon des couleurs naturelles pour le sujet. Donne pour chaque zone importante une base et, si possible, un ton plus foncé de la même famille pour les ombres. " +
+    "Pour un coloriage déjà commencé, respecte les couleurs en place et propose la suite. " +
+    "Avec une image, tu peux choisir jusqu'à 16 marqueurs ; « role » nomme alors la zone et l'usage (ex. « salopette, base », « mer, ombre »). " +
+    "Si une couleur nécessaire manque dans la liste, propose la plus proche et dis-le. " +
     "Pour une question générale sans choix de couleurs, laisse la liste vide. Ne traite que de dessin, de couleurs et de marqueurs.\n" +
     "Réponds UNIQUEMENT avec ce JSON, sans texte autour :\n" +
     '{"reponse":"ta réponse, avec la technique en une phrase","marqueurs":[{"code":"B02","role":"2 à 4 mots : base claire, transition, ombre, reflet…"}]}';
@@ -93,7 +98,7 @@ export default async function handler(req, res) {
     }
     system = chat.system;
     content = chat.messages;
-    maxTokens = 1500;
+    maxTokens = 2200;
   } else {
     if (typeof image !== "string" || !image || image.length > MAX_IMAGE_BASE64 || !/^[A-Za-z0-9+/=]+$/.test(image)) {
       return res.status(400).json({ error: "Image invalide ou trop lourde" });

@@ -920,7 +920,7 @@ ul.tips{list-style:disc}
   function toBottom(){ window.scrollTo({ top: document.documentElement.scrollHeight, behavior: "smooth" }); }
   async function sendChat(text){
     text = String(text || "").trim();
-    if (!text && drawing) text = "Quelles couleurs me suggères-tu pour ce dessin, avec les dégradés ?";
+    if (!text && drawing) text = "Qu'est-ce que c'est, et quelles couleurs me suggères-tu pour chaque zone ?";
     if (busy || !text) return;
     $("ask").value = ""; $("ask").style.height = ""; $("ideas").hidden = true;
     var mine = bubble("me", text);
@@ -938,7 +938,7 @@ ul.tips{list-style:disc}
       var o = parseJson(raw, "{", "}") || { reponse: raw };
       var picks = (Array.isArray(o.marqueurs) ? o.marqueurs : []).map(function(m){
         var it = byCode(m && m.code);
-        return it ? { item: it, role: String(m.role || "").slice(0, 40) } : null;
+        return it ? { item: it, role: String(m.role || "").slice(0, 60) } : null;
       }).filter(Boolean);
       var reply = String(o.reponse || "").slice(0, 1200) || "Voici ce que je te propose.";
       waitMsg.remove();
