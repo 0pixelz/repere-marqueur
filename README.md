@@ -18,7 +18,8 @@ L'app demande une photo de la trousse (appareil photo ou photothèque), puis l'a
 - **Trouver** : recherche par code ou par nom dans toutes les trousses, gros plan et cercle rouge sur la photo. **Pipette** : on touche une couleur sur une image de référence et l'app donne les marqueurs les plus proches.
 - **Assistant** : une conversation. Demande un sujet ou un fade ; Claude choisit dans les trousses et la réponse montre les marqueurs encerclés. Avec une photo de dessin jointe : pastilles numérotées sur le dessin, aperçu rempli, et enregistrement en projet.
 - **Fade** : on entre le code du marqueur qu'on a en main ; l'app propose les plus clairs et les plus foncés à sortir (même famille, même saturation si possible) et les encercle sur la photo. Aucun appel à Claude.
-- **Tons** : tous les marqueurs rangés par niveau de luminosité (ou de saturation), avec filtre par famille.
+- **Mes tons** (dans l'onglet Fade) : tous les marqueurs rangés par niveau de luminosité ou de saturation, avec filtre par famille.
+- **Effets** : dix effets et textures (briques, lumière, cristal, eau, bois, métal, nuage, feu, feuillage, pierre), chacun avec un exemple dessiné dans les couleurs de la trousse, les étapes et les marqueurs à sortir. Aucun appel à Claude.
 - **Guide** : décodeur de code, règles pour un fade, fades possibles, et ce qui manque (références absentes et trous dans les fades).
 - **Trousse** : plusieurs trousses (une photo et une analyse chacune), capuchons à vérifier avec suggestions de code, nuancier réel, marqueurs à racheter, projets et palettes, toutes les couleurs lues.
 

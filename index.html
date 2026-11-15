@@ -135,6 +135,9 @@ ul.tips{list-style:disc}
 img.shared{width:100%;height:auto;border-radius:12px;border:1.5px solid var(--stroke);display:block}
 .palhead .row{flex-wrap:nowrap;gap:6px}
 canvas.preview{width:100%;height:auto;border-radius:12px;display:block}
+.fxart svg{width:100%;height:auto;display:block;border-radius:12px;border:1.5px solid var(--stroke)}
+.seg{justify-content:center}
+.seg .chip{padding:9px 18px}
 /* first launch */
 .welcome{gap:14px;padding:20px 16px}
 .welcome h2{font-size:24px;font-weight:700;line-height:1.15;text-wrap:balance}
@@ -186,7 +189,7 @@ canvas.preview{width:100%;height:auto;border-radius:12px;display:block}
   display:flex;justify-content:center;padding-bottom:env(safe-area-inset-bottom);border-top:1.5px solid var(--stroke)}
 .tabs button{flex:1;max-width:180px;height:var(--tab-h);min-height:0;border:0;border-radius:0;background:transparent;color:var(--muted);
   font:600 11px var(--display);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:0}
-.tabs .ico{width:46px;height:30px;border-radius:999px;display:flex;align-items:center;justify-content:center;transition:background .15s}
+.tabs .ico{width:50px;height:30px;border-radius:999px;display:flex;align-items:center;justify-content:center;transition:background .15s}
 .tabs svg{width:23px;height:23px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .tabs button[aria-selected="true"]{color:var(--ink)}
 .tabs button[aria-selected="true"] .ico{background:var(--ring);color:#fff}
@@ -320,6 +323,10 @@ canvas.preview{width:100%;height:auto;border-radius:12px;display:block}
 
   <!-- ============ Fade ============ -->
   <div class="view" id="view-fade" hidden>
+    <div class="chips seg" role="group" aria-label="Fade ou tons">
+      <button type="button" class="chip word" data-go="fade">Fade</button>
+      <button type="button" class="chip word" data-go="tons">Mes tons</button>
+    </div>
     <section class="card" aria-label="Fade à partir d'une couleur">
       <h2>Fade à partir d'une couleur</h2>
       <p>Entre le code du marqueur que tu as en main. L'app te dit lesquels sortir pour le fade et où ils sont dans ta trousse.</p>
@@ -334,6 +341,10 @@ canvas.preview{width:100%;height:auto;border-radius:12px;display:block}
 
   <!-- ============ Tons ============ -->
   <div class="view" id="view-tons" hidden>
+    <div class="chips seg" role="group" aria-label="Fade ou tons">
+      <button type="button" class="chip word" data-go="fade">Fade</button>
+      <button type="button" class="chip word" data-go="tons">Mes tons</button>
+    </div>
     <section class="card" aria-label="Mes couleurs par luminosité">
       <h2>Mes couleurs par ton</h2>
       <p>Tes marqueurs rangés du plus clair au plus foncé. Touche une ligne pour les voir sur la photo de ta trousse.</p>
@@ -346,6 +357,29 @@ canvas.preview{width:100%;height:auto;border-radius:12px;display:block}
     </section>
     <section class="card" id="toncard" hidden aria-label="Niveaux">
       <div class="frows" id="tonrows"></div>
+    </section>
+  </div>
+
+  <!-- ============ Effets ============ -->
+  <div class="view" id="view-effets" hidden>
+    <section class="card" aria-label="Effets et textures">
+      <h2>Effets et textures</h2>
+      <p>Choisis un effet : un exemple dessiné avec tes couleurs, les étapes, et les marqueurs à sortir.</p>
+      <div class="chips" id="fxlist"></div>
+    </section>
+    <section class="card" id="fxcard" aria-label="Effet choisi">
+      <h2 id="fxname"></h2>
+      <div id="fxart" class="fxart"></div>
+      <p class="status" id="fxnote"></p>
+      <ol class="tips" id="fxsteps"></ol>
+    </section>
+    <section class="card" id="fxout" hidden aria-label="Marqueurs pour cet effet"></section>
+    <section class="card" aria-label="Autre effet">
+      <h2>Un autre effet ?</h2>
+      <form class="search keep" id="fxform">
+        <input id="fxask" type="text" maxlength="60" placeholder="Ex. fourrure, verre, néon" aria-label="Effet à demander à l'assistant">
+        <button type="submit">Demander</button>
+      </form>
     </section>
   </div>
 
@@ -469,8 +503,8 @@ canvas.preview{width:100%;height:auto;border-radius:12px;display:block}
   <button role="tab" data-view="fade" aria-selected="false">
     <span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="7" cy="12" r="4.5"/><circle cx="12" cy="12" r="4.5" fill="currentColor" fill-opacity=".35"/><circle cx="17" cy="12" r="4.5" fill="currentColor"/></svg></span>Fade
   </button>
-  <button role="tab" data-view="tons" aria-selected="false">
-    <span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor" stroke="none"/></svg></span>Tons
+  <button role="tab" data-view="effets" aria-selected="false">
+    <span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h10l4 5.500L12 21 3 9.500z"/><path d="M3 9.500h18M9.500 9.500L12 21l2.500-11.500M7 4l2.500 5.500L12 4l2.500 5.500L17 4"/></svg></span>Effets
   </button>
   <button role="tab" data-view="guide" aria-selected="false">
     <span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6.500C9.8 5 7.3 4.6 4 5v13c3.3-.4 5.8 0 8 1.5 2.2-1.5 4.7-1.9 8-1.500V5c-3.3-.4-5.8 0-8 1.500z"/><path d="M12 6.500v13"/></svg></span>Guide
@@ -531,10 +565,13 @@ canvas.preview{width:100%;height:auto;border-radius:12px;display:block}
     $("scanart").hidden = total === 0;
   }
   function go(view){
-    ["accueil", "trouver", "idees", "fade", "tons", "guide", "trousse"].forEach(function(v){ $("view-" + v).hidden = v !== view; });
+    ["accueil", "trouver", "idees", "fade", "tons", "effets", "guide", "trousse"].forEach(function(v){ $("view-" + v).hidden = v !== view; });
     $("tabs").hidden = view === "accueil";
     Array.prototype.forEach.call(document.querySelectorAll(".tabs button"), function(b){
-      b.setAttribute("aria-selected", b.getAttribute("data-view") === view ? "true" : "false");
+      b.setAttribute("aria-selected", b.getAttribute("data-view") === (view === "tons" ? "fade" : view) ? "true" : "false");
+    });
+    Array.prototype.forEach.call(document.querySelectorAll(".seg button"), function(b){
+      b.setAttribute("aria-pressed", b.getAttribute("data-go") === view ? "true" : "false");
     });
     window.scrollTo(0, 0);
     if (view === "trouver") draw();
@@ -1481,6 +1518,122 @@ canvas.preview{width:100%;height:auto;border-radius:12px;display:block}
     })(lv);
   }
 
+  /* ---- Effets tab: textures and light effects, drawn with the user's own colours ---- */
+  // each effect: slots (role + the colour to look for), steps ({0}, {1}… = the marker of that slot), art(colours) → svg
+  var SVG0 = '<svg viewBox="0 0 300 180" role="img" aria-label="Exemple">', INK = "#26272b", PAPER = "#fbfaf6";
+  var EFFECTS = [
+    { id: "briques", name: "Briques", slots: [["base", "#b5553c"], ["lumière", "#de8f6f"], ["ombre", "#7a3324"], ["joints", "#cfc8bb"]],
+      steps: ["Trace les joints avec {3}, en décalant une rangée sur deux.", "Remplis chaque brique avec {0}.", "Passe {1} sur le haut de chaque brique, là où tombe la lumière.", "Ajoute {2} en bas et sur un côté, puis varie un peu d'une brique à l'autre."],
+      art: function(c){
+        var o = '<rect width="300" height="180" fill="' + c[3] + '"/>', r, x;
+        for (r = 0; r < 5; r++) for (x = (r % 2 ? -26 : 6); x < 300; x += 64){
+          var y = 7 + r * 34;
+          o += '<rect x="' + x + '" y="' + y + '" width="56" height="28" rx="2" fill="' + c[0] + '"/><rect x="' + x + '" y="' + y + '" width="56" height="7" rx="2" fill="' + c[1] + '"/>' +
+               '<rect x="' + x + '" y="' + (y + 21) + '" width="56" height="7" rx="2" fill="' + c[2] + '"/><rect x="' + (x + 49) + '" y="' + y + '" width="7" height="28" rx="2" fill="' + c[2] + '"/>';
+        }
+        return o;
+      } },
+    { id: "lumiere", name: "Lumière", slots: [["cœur", "#fff6c8"], ["halo", "#ffd866"], ["bord", "#f59e3b"], ["fond", "#34406e"]],
+      steps: ["Laisse le papier blanc au centre de la source : c'est le point le plus lumineux.", "Entoure-le de {0}, puis élargis avec {1}.", "Termine le halo avec {2} et fonds vers l'extérieur.", "Fonce le tour avec {3} : plus le fond est sombre, plus la lumière ressort."],
+      art: function(c){
+        return '<defs><radialGradient id="fxg"><stop offset="0" stop-color="#ffffff"/><stop offset=".22" stop-color="' + c[0] + '"/><stop offset=".5" stop-color="' + c[1] + '"/>' +
+          '<stop offset=".78" stop-color="' + c[2] + '"/><stop offset="1" stop-color="' + c[3] + '"/></radialGradient></defs>' +
+          '<rect width="300" height="180" fill="' + c[3] + '"/><circle cx="150" cy="90" r="88" fill="url(#fxg)"/>';
+      } },
+    { id: "cristal", name: "Cristal", slots: [["clair", "#c9ecf5"], ["moyen", "#6cc3e0"], ["foncé", "#2b6cb0"], ["reflet", "#9a7fd6"]],
+      steps: ["Découpe le cristal en facettes aux bords nets.", "Colorie chaque facette d'un seul ton, sans fondu : {0}, {1} ou {2}.", "Mets une facette claire à côté d'une foncée pour le contraste.", "Ajoute une facette {3} pour le reflet et garde un éclat blanc."],
+      art: function(c){
+        var f = function(p, col){ return '<polygon points="' + p + '" fill="' + col + '" stroke="' + INK + '" stroke-width="2" stroke-linejoin="round"/>'; };
+        return '<rect width="300" height="180" fill="' + PAPER + '"/>' + f("150,12 92,66 124,66", c[1]) + f("150,12 124,66 176,66", c[0]) + f("150,12 176,66 208,66", c[2]) +
+          f("92,66 124,66 150,170", c[2]) + f("124,66 176,66 150,170", c[1]) + f("176,66 208,66 150,170", c[3]) +
+          '<path d="M232 34l4 10 10 4-10 4-4 10-4-10-10-4 10-4z" fill="' + c[0] + '" stroke="' + INK + '" stroke-width="1.5"/>';
+      } },
+    { id: "eau", name: "Eau", slots: [["clair", "#cfeef5"], ["moyen", "#63b8d8"], ["foncé", "#1f6f9c"]],
+      steps: ["Remplis toute la surface avec {0}.", "Dessine des bandes ondulées avec {1}, plus serrées vers le bas.", "Fonce le creux des vagues avec {2}.", "Laisse de fins traits blancs pour les reflets."],
+      art: function(c){
+        var w = function(y, col){ return '<path d="M0 ' + y + ' Q 37 ' + (y - 22) + ' 75 ' + y + ' T 150 ' + y + ' T 225 ' + y + ' T 300 ' + y + ' V180 H0z" fill="' + col + '"/>'; };
+        return '<rect width="300" height="180" fill="' + c[0] + '"/>' + w(62, c[1]) + w(104, c[0]) + w(120, c[1]) + w(152, c[2]) +
+          '<path d="M30 40q20-10 40 0M190 34q24-12 48 0M110 92q18-8 36 0" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round"/>';
+      } },
+    { id: "bois", name: "Bois", slots: [["clair", "#d9a76a"], ["moyen", "#a8703a"], ["foncé", "#6b4423"]],
+      steps: ["Remplis la planche avec {0}.", "Tire de longs traits irréguliers avec {1}, dans le sens du bois.", "Dessine les veines et les nœuds avec {2}.", "Repasse {0} par endroits pour adoucir."],
+      art: function(c){
+        var o = '<rect width="300" height="180" fill="' + c[0] + '"/>', i;
+        for (i = 0; i < 6; i++) o += '<path d="M0 ' + (16 + i * 30) + ' C 80 ' + (4 + i * 30) + ' 190 ' + (30 + i * 30) + ' 300 ' + (14 + i * 30) + '" fill="none" stroke="' + c[1] + '" stroke-width="9" stroke-linecap="round"/>';
+        for (i = 0; i < 6; i++) o += '<path d="M0 ' + (28 + i * 30) + ' C 90 ' + (16 + i * 30) + ' 200 ' + (40 + i * 30) + ' 300 ' + (26 + i * 30) + '" fill="none" stroke="' + c[2] + '" stroke-width="2"/>';
+        return o + '<ellipse cx="96" cy="88" rx="20" ry="11" fill="' + c[1] + '" stroke="' + c[2] + '" stroke-width="3"/><ellipse cx="96" cy="88" rx="8" ry="4" fill="' + c[2] + '"/>' +
+          '<path d="M0 60h300M0 120h300" stroke="' + c[2] + '" stroke-width="3"/>';
+      } },
+    { id: "metal", name: "Métal", slots: [["clair", "#e3e6ea"], ["moyen", "#9aa3ad"], ["foncé", "#4b5560"], ["reflet", "#b9d3ea"]],
+      steps: ["Garde une bande de papier blanc pour l'éclat.", "Pose {0} de chaque côté de l'éclat, puis {1}.", "Place une bande {2} juste à côté d'une zone claire : le contraste franc fait le métal.", "Glisse un peu de {3} dans les zones moyennes pour le reflet du ciel."],
+      art: function(c){
+        return '<defs><linearGradient id="fxm" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="' + c[1] + '"/><stop offset=".16" stop-color="' + c[0] + '"/><stop offset=".24" stop-color="#ffffff"/>' +
+          '<stop offset=".32" stop-color="' + c[0] + '"/><stop offset=".5" stop-color="' + c[3] + '"/><stop offset=".62" stop-color="' + c[1] + '"/><stop offset=".64" stop-color="' + c[2] + '"/>' +
+          '<stop offset=".82" stop-color="' + c[2] + '"/><stop offset="1" stop-color="' + c[1] + '"/></linearGradient></defs>' +
+          '<rect width="300" height="180" fill="' + PAPER + '"/><rect x="24" y="38" width="252" height="104" rx="52" fill="url(#fxm)" stroke="' + INK + '" stroke-width="2.5"/>';
+      } },
+    { id: "nuage", name: "Nuage", slots: [["ciel", "#9fd0f0"], ["ombre douce", "#cfd8e6"], ["ombre", "#93a3bd"]],
+      steps: ["Colorie le ciel avec {0} en contournant le nuage : le blanc du nuage, c'est le papier.", "Ombre le dessous de chaque bosse avec {1}.", "Renforce le bas du nuage avec {2}, en petites touches.", "Fonds les ombres avec {1} ou le blender."],
+      art: function(c){
+        var b = function(col, dy){ return '<g fill="' + col + '" transform="translate(0 ' + dy + ')"><circle cx="105" cy="100" r="32"/><circle cx="145" cy="78" r="40"/><circle cx="192" cy="96" r="34"/><rect x="92" y="96" width="112" height="36" rx="18"/></g>'; };
+        return '<rect width="300" height="180" fill="' + c[0] + '"/>' + b(c[2], 10) + b(c[1], 4) + b("#ffffff", -6);
+      } },
+    { id: "feu", name: "Feu", slots: [["cœur", "#fff1a8"], ["jaune", "#ffc93c"], ["orange", "#f5802a"], ["rouge", "#cf2f1d"]],
+      steps: ["Commence par le centre de la flamme avec {0}.", "Entoure avec {1}, puis {2}, en traits qui montent.", "Finis les pointes et le contour avec {3}.", "Fonds chaque passage dans le suivant pendant que l'encre est fraîche."],
+      art: function(c){
+        var d = "M150 12 C 196 60 222 98 208 134 C 198 162 174 172 150 172 C 126 172 102 162 92 134 C 78 98 104 60 150 12Z";
+        var f = function(col, k){ return '<path d="' + d + '" fill="' + col + '" transform="translate(150 172) scale(' + k + ') translate(-150 -172)"/>'; };
+        return '<rect width="300" height="180" fill="#2b2622"/>' + f(c[3], 1) + f(c[2], 0.78) + f(c[1], 0.56) + f(c[0], 0.34);
+      } },
+    { id: "feuillage", name: "Feuillage", slots: [["clair", "#b7dd6f"], ["moyen", "#6fb04a"], ["foncé", "#2f6f3a"]],
+      steps: ["Remplis la feuille avec {1}.", "Éclaire le côté tourné vers la lumière avec {0}.", "Fonce l'autre côté et le long de la nervure avec {2}.", "Repasse {1} sur les jonctions pour fondre."],
+      art: function(c){
+        return '<rect width="300" height="180" fill="' + PAPER + '"/><path d="M36 152 C 58 44 196 20 264 28 C 254 112 182 172 36 152Z" fill="' + c[1] + '"/>' +
+          '<path d="M36 152 C 120 124 204 72 264 28 C 254 112 182 172 36 152Z" fill="' + c[2] + '"/><path d="M70 118 C 92 70 160 46 220 40 C 164 60 112 88 70 118Z" fill="' + c[0] + '"/>' +
+          '<path d="M36 152 C 120 124 204 72 264 28" fill="none" stroke="' + INK + '" stroke-width="2.5" stroke-linecap="round"/>';
+      } },
+    { id: "pierre", name: "Pierre", slots: [["clair", "#cfcac0"], ["moyen", "#9d978c"], ["foncé", "#5f5a52"]],
+      steps: ["Remplis la pierre avec {1}.", "Éclaire les faces du dessus avec {0}.", "Fonce les faces à l'ombre et les fissures avec {2}.", "Ajoute de petits points {2} pour le grain."],
+      art: function(c){
+        var f = function(p, col){ return '<polygon points="' + p + '" fill="' + col + '" stroke="' + INK + '" stroke-width="2" stroke-linejoin="round"/>'; };
+        return '<rect width="300" height="180" fill="' + PAPER + '"/>' + f("40,150 70,70 150,40 230,70 262,150", c[1]) + f("70,70 150,40 230,70 160,92", c[0]) + f("160,92 230,70 262,150 176,150", c[2]) +
+          f("212,150 226,120 262,116 284,150", c[1]) + f("226,120 262,116 250,132", c[0]) +
+          '<path d="M96 104l14 20-8 26M130 110l-6 16" fill="none" stroke="' + c[2] + '" stroke-width="2.5" stroke-linecap="round"/>';
+      } }
+  ];
+  var fxId = EFFECTS[0].id;
+  function showEffect(){
+    var fx = EFFECTS.filter(function(e){ return e.id === fxId; })[0] || EFFECTS[0];
+    var list = $("fxlist"); list.innerHTML = "";
+    EFFECTS.forEach(function(e){
+      var b = document.createElement("button"); b.type = "button"; b.className = "chip word"; b.textContent = e.name;
+      b.setAttribute("aria-pressed", e.id === fx.id ? "true" : "false");
+      b.addEventListener("click", function(){ fxId = e.id; showEffect(); $("fxcard").scrollIntoView({ behavior: "smooth", block: "start" }); });
+      list.appendChild(b);
+    });
+    // for each slot, the closest marker the user owns (each marker used once)
+    var seen = {}, pool2 = allItems().filter(function(i){ if (i.empty || !i.hex || seen[i.code]) return false; seen[i.code] = true; return true; });
+    var used = {}, picks = [];
+    fx.slots.forEach(function(sl){
+      var want = lab(hexRgb(sl[1])), best = null, bd = 1e9;
+      pool2.forEach(function(i){ if (used[i.code]) return; var d = dE(want, lab(hexRgb(i.hex))); if (d < bd){ bd = d; best = i; } });
+      if (best){ used[best.code] = true; picks.push({ item: best, role: sl[0], pts: [] }); } else picks.push(null);
+    });
+    var have = picks.every(Boolean);
+    var cols = fx.slots.map(function(sl, i){ return picks[i] ? picks[i].item.hex : sl[1]; });
+    $("fxname").textContent = fx.name;
+    $("fxart").innerHTML = SVG0 + fx.art(cols) + "</svg>";
+    $("fxnote").textContent = have ? "Exemple dessiné avec les couleurs de tes marqueurs." : "Exemple en couleurs types. Analyse ta trousse pour le voir avec tes marqueurs.";
+    var ol = $("fxsteps"); ol.innerHTML = "";
+    fx.steps.forEach(function(t){
+      var li = document.createElement("li");
+      li.textContent = t.replace(/\{(\d)\}/g, function(m, k){ return picks[k] ? picks[k].item.code : "le ton « " + fx.slots[k][0] + " »"; });
+      ol.appendChild(li);
+    });
+    var out = $("fxout"); out.hidden = !have;
+    if (have){ lastAsk = "Effet " + fx.name; renderReply("Les marqueurs à sortir pour cet effet :", picks, null, false, out); }
+  }
+
   /* ---- Fade tab: from the marker in hand, which ones to take out next ---- */
   function makeFade(raw){
     var d = decode(raw);
@@ -1782,7 +1935,7 @@ canvas.preview{width:100%;height:auto;border-radius:12px;display:block}
     $("todo").hidden = !unread.length;
     $("todotitle").textContent = unread.length + (unread.length > 1 ? " capuchons à vérifier" : " capuchon à vérifier");
     index.forEach(function(it){ it.kit = photo.key; });
-    showKits(); showFades(); showDecode($("dec").value); showPals(); showMissing(); showTons();
+    showKits(); showFades(); showDecode($("dec").value); showPals(); showMissing(); showTons(); showEffect();
     $("stagecard").hidden = !photo.ready; $("thumb").hidden = !photo.ready; $("scan").hidden = !photo.ready;
     $("stagetitle").textContent = kits.length > 1 ? kitName(photo.key) : "Toute la trousse";
     var ni = Object.keys(inks).length; $("swclear").hidden = !ni;
@@ -1885,6 +2038,14 @@ canvas.preview{width:100%;height:auto;border-radius:12px;display:block}
   Array.prototype.forEach.call($("tondim").children, function(b){
     b.addEventListener("click", function(){ tonDim = b.getAttribute("data-dim"); showTons(); });
   });
+  Array.prototype.forEach.call(document.querySelectorAll(".seg button"), function(b){
+    b.addEventListener("click", function(){ go(b.getAttribute("data-go")); });
+  });
+  $("fxform").addEventListener("submit", function(e){
+    e.preventDefault(); var v = $("fxask").value.trim(); if (!v) return;
+    $("fxask").value = ""; go("idees");
+    sendChat("Explique-moi en étapes comment dessiner un effet de « " + v + " » avec mes marqueurs, et lesquels utiliser.");
+  });
   $("fadeform").addEventListener("submit", function(e){ e.preventDefault(); $("fadecode").blur(); showFade($("fadecode").value); });
   $("fadebtn").addEventListener("click", function(){ var h = hits[sel]; if (!h || h.unread) return; go("fade"); showFade(h.code); });
   $("blend").addEventListener("click", function(){
@@ -1894,7 +2055,7 @@ canvas.preview{width:100%;height:auto;border-radius:12px;display:block}
   photo.img.addEventListener("load", photoLoaded);
   photo.img.addEventListener("error", function(){ say("Cette image ne peut pas être ouverte. Choisis une photo JPEG ou PNG.", true); });
   // first launch: no photo yet, so ask for one; otherwise reopen the user's own photo
-  showDecode($("dec").value); showFades();
+  showDecode($("dec").value); showFades(); showEffect();
   loadKits();
   loadPhoto().then(function(blob){ if (blob) { go("trouver"); show(blob); } else if (kits.length > 1) { go("trousse"); switchKit(photo.key); } else go("accueil"); hideSplash(); });
 })();
