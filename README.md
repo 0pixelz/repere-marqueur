@@ -16,7 +16,7 @@ L'app demande une photo de la trousse (appareil photo ou photothèque), puis l'a
 ## Onglets
 
 - **Trouver** : recherche par code ou par nom, gros plan et cercle rouge sur la photo.
-- **Assistant** : une conversation. Demande un sujet (« un nuage ») ou un fade à partir d'un code ; Claude choisit 3 à 7 marqueurs de ta trousse et la réponse les montre encerclés en rouge sur la photo.
+- **Assistant** : une conversation. Demande un sujet (« un nuage ») ou un fade à partir d'un code ; Claude choisit 3 à 7 marqueurs de ta trousse et la réponse les montre encerclés en rouge sur la photo. On peut joindre une photo de son dessin pour avoir des suggestions zone par zone.
 - **Guide** : décodeur de code (famille, saturation, luminosité), règles pour un fade, et la liste des fades possibles avec les marqueurs de la trousse.
 - **Trousse** : changer la photo, lancer l'analyse, voir toutes les couleurs lues. Les capuchons vus mais non lus (reflet, flou) sont signalés ; tu tapes leur code à la main.
 

@@ -57,6 +57,8 @@ function chatRequest(messages, palette) {
     "choisis 3 à 7 marqueurs UNIQUEMENT dans cette liste, jamais un code absent. Pour un fade, prends des teintes voisines classées du plus clair au plus foncé, " +
     "et garde la couleur de départ si la personne en nomme une (un « numéro » ou « # » de couleur désigne un code de la liste). " +
     "Si un code demandé n'est pas dans la liste, dis-le et propose le plus proche. " +
+    "Si une image est jointe, c'est le dessin de la personne (trait, croquis ou coloriage en cours) : dis en une phrase ce que tu y vois, puis propose les couleurs zone par zone " +
+    "(ex. ciel, peau, cheveux, ombres), avec où placer le clair et le foncé pour les dégradés. Dans ce cas tu peux choisir jusqu'à 10 marqueurs et « role » nomme la zone. " +
     "Pour une question générale sans choix de couleurs, laisse la liste vide. Ne traite que de dessin, de couleurs et de marqueurs.\n" +
     "Réponds UNIQUEMENT avec ce JSON, sans texte autour :\n" +
     '{"reponse":"ta réponse, avec la technique en une phrase","marqueurs":[{"code":"B02","role":"2 à 4 mots : base claire, transition, ombre, reflet…"}]}';
@@ -78,9 +80,20 @@ export default async function handler(req, res) {
   if (mode === "chat") {
     const chat = chatRequest(body.messages, body.palette);
     if (!chat) return res.status(400).json({ error: "Demande invalide" });
+    if (image !== undefined && image !== "") {
+      // a drawing attached to the last message
+      if (typeof image !== "string" || image.length > MAX_IMAGE_BASE64 || !/^[A-Za-z0-9+/=]+$/.test(image)) {
+        return res.status(400).json({ error: "Image invalide ou trop lourde" });
+      }
+      const last = chat.messages[chat.messages.length - 1];
+      last.content = [
+        { type: "image", source: { type: "base64", media_type: "image/jpeg", data: image } },
+        { type: "text", text: last.content },
+      ];
+    }
     system = chat.system;
     content = chat.messages;
-    maxTokens = 1200;
+    maxTokens = 1500;
   } else {
     if (typeof image !== "string" || !image || image.length > MAX_IMAGE_BASE64 || !/^[A-Za-z0-9+/=]+$/.test(image)) {
       return res.status(400).json({ error: "Image invalide ou trop lourde" });
