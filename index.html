@@ -154,6 +154,9 @@ canvas.preview{width:100%;height:auto;border-radius:12px;display:block}
 .steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
 .steps li{display:flex;gap:10px;align-items:center;padding:8px 10px;border:1px solid var(--line);border-radius:12px;background:var(--paper);cursor:pointer}
 .steps .dot{width:30px;height:30px}
+.steps li.on{border-color:var(--ring);border-width:2px}
+.steps .num{flex:none;width:26px;height:26px;border-radius:50%;background:var(--ring);color:#fff;font:700 13px/26px var(--body);text-align:center}
+#stage .ring{pointer-events:auto;cursor:pointer}
 .steps b{font:500 16px var(--mono)}
 .steps .txt{display:flex;flex-direction:column;min-width:0}
 .steps .txt span{font-size:13px;color:var(--muted)}
@@ -271,6 +274,7 @@ canvas.preview{width:100%;height:auto;border-radius:12px;display:block}
     <section class="card" id="stagecard" aria-label="Photo complète">
       <h2 id="stagetitle">Toute la trousse</h2>
       <div class="stage" id="stage"><img id="photo" alt="Photo de la trousse de marqueurs vue du dessus"></div>
+      <ol class="steps" id="legend" hidden aria-label="Marqueurs encerclés"></ol>
     </section>
   </div>
 
@@ -1277,16 +1281,37 @@ canvas.preview{width:100%;height:auto;border-radius:12px;display:block}
     });
   }
 
+  // select one of the circled markers (from a ring, the legend or a chip) and show its close-up
+  function choose(i){
+    sel = i;
+    Array.prototype.forEach.call($("chips").children, function(el, k){ if (el.hasAttribute("aria-pressed")) el.setAttribute("aria-pressed", k === i ? "true" : "false"); });
+    draw();
+    $("hitcard").scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
   /* ---- drawing: red rings on the whole photo, close-up of the selected hit ---- */
   function draw(){
     var stage = $("stage");
     Array.prototype.slice.call(stage.querySelectorAll(".ring")).forEach(function(el){ el.remove(); });
+    var legend = $("legend"); legend.innerHTML = ""; legend.hidden = hits.length < 2;
     hits.forEach(function(h, i){
       var r = document.createElement("div");
       r.className = "ring" + (i === sel ? " sel" : "");
       r.style.left = (h.x * 100) + "%"; r.style.top = (h.y * 100) + "%";
       if (numbered){ var n = document.createElement("i"); n.textContent = i + 1; r.appendChild(n); }
+      r.addEventListener("click", function(){ choose(i); });
       stage.appendChild(r);
+      if (hits.length < 2) return;
+      // legend under the photo: 1 = code, 2 = code… tap a line to select that marker
+      var li = document.createElement("li"); if (i === sel) li.className = "on";
+      var num = document.createElement("span"); num.className = "num"; num.textContent = i + 1;
+      var dot = document.createElement("span"); dot.className = "dot"; dot.style.background = h.unread ? capHex(h) : (h.hex || "transparent");
+      var txt = document.createElement("div"); txt.className = "txt";
+      var b = document.createElement("b"); b.textContent = h.unread ? (h.guess ? h.guess + " ?" : "Non lu") : h.code;
+      var sp = document.createElement("span"); sp.textContent = h.unread ? "à vérifier" : (h.name || "") + (h.empty ? " · vide" : "");
+      txt.appendChild(b); txt.appendChild(sp); li.appendChild(num); li.appendChild(dot); li.appendChild(txt);
+      li.addEventListener("click", function(){ choose(i); });
+      legend.appendChild(li);
     });
     var h = hits[sel];
     $("hitcard").hidden = !h;
