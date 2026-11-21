@@ -73,8 +73,10 @@ function chatRequest(messages, palette) {
     "Pour un coloriage déjà commencé, respecte les couleurs en place et propose la suite. " +
     "Avec une image, tu peux choisir jusqu'à 16 marqueurs ; « role » nomme alors la zone et l'usage (ex. « salopette, base », « mer, ombre »). " +
     "Si une couleur nécessaire manque dans la liste, propose la plus proche et dis-le. " +
-    "Avec une image, ajoute à chaque marqueur « points » : 1 à 4 positions [x, y] en millièmes de la largeur et de la hauteur de l'image (origine en haut à gauche), " +
-    "chacune bien à l'intérieur d'une zone à colorier avec ce marqueur, loin des traits. Pour un ton d'ombre, place le point là où l'ombre irait dans la zone. Sans image, n'ajoute pas « points ». " +
+    "Avec une image, ajoute à chaque marqueur « points » : 1 à 8 positions [x, y] en millièmes de la largeur et de la hauteur de l'image (origine en haut à gauche), " +
+    "une par zone fermée à colorier avec ce marqueur, bien à l'intérieur de la zone et loin des traits. Fais en sorte que chaque zone du dessin reçoive un point, pour que tout le dessin soit colorié. " +
+    "L'app s'en sert pour montrer un aperçu colorié en dégradé : pour chaque grande zone (ciel, eau, montagne, vêtement…), donne une couleur de base, puis un ton plus foncé de la même famille " +
+    "dont le point est DANS LA MÊME ZONE que la base, placé du côté où va l'ombre ; le dégradé ira de la base vers ce point. Liste toujours la base avant son ombre. Sans image, n'ajoute pas « points ». " +
     "Pour une question générale sans choix de couleurs, laisse la liste vide. Ne traite que de dessin, de couleurs et de marqueurs.\n" +
     "Réponds UNIQUEMENT avec ce JSON, sans texte autour, sans bloc de code, avec exactement ces noms de clés (sans accent) :\n" +
     '{"reponse":"ta réponse, avec la technique en une phrase","marqueurs":[{"code":"B02","role":"2 à 4 mots : base claire, transition, ombre, reflet…","points":[[512,430]]}]}';
@@ -109,7 +111,7 @@ export default async function handler(req, res) {
     }
     system = chat.system;
     content = chat.messages;
-    maxTokens = 3000;
+    maxTokens = 4000;
   } else {
     if (typeof image !== "string" || !image || image.length > MAX_IMAGE_BASE64 || !/^[A-Za-z0-9+/=]+$/.test(image)) {
       return res.status(400).json({ error: "Image invalide ou trop lourde" });

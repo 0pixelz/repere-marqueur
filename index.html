@@ -1075,7 +1075,7 @@ canvas.preview{width:100%;height:auto;border-radius:12px;display:block}
         i = y * w + x; if (!line[i]) continue;
         wall[i] = 1; if (x > 0) wall[i - 1] = 1; if (x < w - 1) wall[i + 1] = 1; if (y > 0) wall[i - w] = 1; if (y < h - 1) wall[i + w] = 1;
       }
-      var region = new Int32Array(n), stack = new Int32Array(n), colour = [null], blobs = [], id = 0, filled = 0;
+      var region = new Int32Array(n), stack = new Int32Array(n), colour = [null], seedOf = [null], box = [null], shades = {}, id = 0, filled = 0;
       picks.forEach(function(p){
         var rgb = hexRgb(p.item.hex);
         (p.pts || []).forEach(function(q){
@@ -1085,31 +1085,53 @@ canvas.preview{width:100%;height:auto;border-radius:12px;display:block}
             if (xx >= 0 && xx < w && yy >= 0 && yy < h && !wall[yy * w + xx]){ s = yy * w + xx; sx = xx; sy = yy; found = true; }
           }
           if (!found || region[s] < 0) return;
-          if (region[s] > 0){ blobs.push({ rid: region[s], x: sx, y: sy, rgb: rgb }); return; }   // zone already has its base: shade it
-          id++; var top = 0, count = 0; stack[top++] = s; region[s] = id;
+          if (region[s] > 0){      // zone already has its base: this colour becomes the dark end of its gradient
+            if (colour[region[s]] !== rgb) (shades[region[s]] = shades[region[s]] || []).push({ x: sx, y: sy, rgb: rgb });
+            return;
+          }
+          id++; var top = 0, count = 0, x0 = sx, x1 = sx, y0 = sy, y1 = sy; stack[top++] = s; region[s] = id;
           while (top){
-            var c = stack[--top], cx = c % w; count++;
+            var c = stack[--top], cx = c % w, cy = (c - cx) / w; count++;
+            if (cx < x0) x0 = cx; if (cx > x1) x1 = cx; if (cy < y0) y0 = cy; if (cy > y1) y1 = cy;
             if (cx > 0 && !wall[c - 1] && !region[c - 1]){ region[c - 1] = id; stack[top++] = c - 1; }
             if (cx < w - 1 && !wall[c + 1] && !region[c + 1]){ region[c + 1] = id; stack[top++] = c + 1; }
             if (c >= w && !wall[c - w] && !region[c - w]){ region[c - w] = id; stack[top++] = c - w; }
             if (c < n - w && !wall[c + w] && !region[c + w]){ region[c + w] = id; stack[top++] = c + w; }
           }
           if (count > n * 0.5){ for (i = 0; i < n; i++) if (region[i] === id) region[i] = -1; colour[id] = null; }   // leaked out of the zone
-          else { colour[id] = rgb; filled++; }
+          else { colour[id] = rgb; seedOf[id] = { x: sx, y: sy }; box[id] = [x0, y0, x1, y1]; filled++; }
         });
       });
+      // ink pools along the lines: pixels within two pixels of a line get a little darker
+      var near = new Uint8Array(n);
+      for (i = 0; i < n; i++){
+        if (!wall[i]) continue;
+        var wx = i % w;
+        if (wx > 0) near[i - 1] = 1; if (wx > 1) near[i - 2] = 1; if (wx < w - 1) near[i + 1] = 1; if (wx < w - 2) near[i + 2] = 1;
+        if (i >= w) near[i - w] = 1; if (i >= 2 * w) near[i - 2 * w] = 1; if (i < n - w) near[i + w] = 1; if (i < n - 2 * w) near[i + 2 * w] = 1;
+      }
+      // alcohol-marker look: each zone is a gradient (base → its shade colour, or light → base → deeper), with soft streaks
       var out = new Float32Array(n * 3), has = new Uint8Array(n);
-      for (i = 0; i < n; i++){ var rid = region[i]; if (rid > 0 && colour[rid]){ has[i] = 1; out[i * 3] = colour[rid][0]; out[i * 3 + 1] = colour[rid][1]; out[i * 3 + 2] = colour[rid][2]; } }
-      blobs.forEach(function(bl){
-        var R = w * 0.06;
-        for (y = Math.max(0, Math.floor(bl.y - R)); y <= Math.min(h - 1, bl.y + R); y++)
-          for (x = Math.max(0, Math.floor(bl.x - R)); x <= Math.min(w - 1, bl.x + R); x++){
-            i = y * w + x; if (region[i] !== bl.rid) continue;
-            var dd = Math.sqrt((x - bl.x) * (x - bl.x) + (y - bl.y) * (y - bl.y)); if (dd > R) continue;
-            var al = 0.8 * (1 - dd / R);
-            out[i * 3] += (bl.rgb[0] - out[i * 3]) * al; out[i * 3 + 1] += (bl.rgb[1] - out[i * 3 + 1]) * al; out[i * 3 + 2] += (bl.rgb[2] - out[i * 3 + 2]) * al;
+      for (i = 0; i < n; i++){
+        var rid = region[i]; if (rid <= 0 || !colour[rid]) continue;
+        x = i % w; y = (i - x) / w;
+        var base = colour[rid], cr = base[0], cg = base[1], cb = base[2], sd = shades[rid], sp = seedOf[rid], t, q2;
+        if (sd){
+          for (q2 = 0; q2 < sd.length; q2++){
+            var vx = sd[q2].x - sp.x, vy = sd[q2].y - sp.y, L = vx * vx + vy * vy;
+            if (L < 36){ t = 1 - Math.sqrt((x - sd[q2].x) * (x - sd[q2].x) + (y - sd[q2].y) * (y - sd[q2].y)) / (w * 0.09); }
+            else { t = (((x - sp.x) * vx + (y - sp.y) * vy) / L - 0.15) / 0.85; }
+            t = Math.max(0, Math.min(1, t)); t = t * t * (3 - 2 * t) * 0.92;
+            cr += (sd[q2].rgb[0] - cr) * t; cg += (sd[q2].rgb[1] - cg) * t; cb += (sd[q2].rgb[2] - cb) * t;
           }
-      });
+        } else {
+          var bx = box[rid], u = ((x - bx[0]) / Math.max(1, bx[2] - bx[0]) + (y - bx[1]) / Math.max(1, bx[3] - bx[1])) / 2;
+          if (u < 0.45){ t = (0.45 - u) / 0.45 * 0.32; cr += (255 - cr) * t; cg += (255 - cg) * t; cb += (255 - cb) * t; }
+          else { t = 1 - (u - 0.45) / 0.55 * 0.18; cr *= t; cg *= t; cb *= t; }
+        }
+        var tex = (1 + 0.016 * Math.sin((x * 0.82 + y * 0.47) * 0.21 + rid * 1.7) + 0.011 * Math.sin((x * 0.31 - y * 0.9) * 0.12 + rid * 2.9)) * (1 + ((Math.imul(i, 2654435761) >>> 0) / 4294967296 - 0.5) * 0.035) * (near[i] ? 0.92 : 1);
+        has[i] = 1; out[i * 3] = cr * tex; out[i * 3 + 1] = cg * tex; out[i * 3 + 2] = cb * tex;
+      }
       for (i = 0; i < n; i++){
         var j = i;
         if (!has[i] && wall[i] && !line[i]){      // thin rim next to a line: take the colour of the zone beside it
@@ -1117,7 +1139,7 @@ canvas.preview{width:100%;height:auto;border-radius:12px;display:block}
           j = (xr > 0 && has[i - 1]) ? i - 1 : (xr < w - 1 && has[i + 1]) ? i + 1 : (i >= w && has[i - w]) ? i - w : (i < n - w && has[i + w]) ? i + w : -1;
         }
         if (j < 0 || !has[j]) continue;
-        var sh = Math.max(0.7, Math.min(1, gray[i] / mean[i]));
+        var sh = Math.max(0.86, Math.min(1, gray[i] / mean[i]));
         px[i * 4] = out[j * 3] * sh; px[i * 4 + 1] = out[j * 3 + 1] * sh; px[i * 4 + 2] = out[j * 3 + 2] * sh;
       }
       ctx.putImageData(data, 0, 0);
@@ -1450,7 +1472,7 @@ canvas.preview{width:100%;height:auto;border-radius:12px;display:block}
         var it = byAny(m && m.code);
         var pts = (Array.isArray(m && m.points) ? m.points : []).filter(function(q){
           return Array.isArray(q) && q[0] >= 0 && q[0] <= 1000 && q[1] >= 0 && q[1] <= 1000;
-        }).slice(0, 4);
+        }).slice(0, 8);
         return it ? { item: it, role: String(m.role || "").slice(0, 60), pts: pts } : null;
       }).filter(Boolean);
       var reply = String(o.reponse || "").slice(0, 1200);
@@ -1759,18 +1781,14 @@ canvas.preview{width:100%;height:auto;border-radius:12px;display:block}
         });
       });
       m.appendChild(dr);
-      var pv = document.createElement("button"); pv.type = "button"; pv.className = "ghost"; pv.textContent = "Voir l'aperçu rempli";
-      pv.addEventListener("click", function(){
-        pv.disabled = true; pv.textContent = "Remplissage…";
-        fillPreview(pic.url, picks).then(function(res){
-          var note = document.createElement("p"); note.className = "status";
-          note.textContent = res.filled ? "Aperçu approximatif : la couleur s'arrête aux traits fermés, et les teintes viennent de la photo de tes marqueurs." :
-            "Aucune zone n'a pu être remplie : les traits ne sont pas assez nets ou fermés sur cette photo.";
-          m.insertBefore(note, pv); if (res.filled) m.insertBefore(res.canvas, note);
-          pv.remove();
-        }, function(){ pv.disabled = false; pv.textContent = "Aperçu impossible. Réessayer"; });
-      });
-      m.appendChild(pv);
+      // coloured preview in an alcohol-marker style, shown first
+      var pvnote = document.createElement("p"); pvnote.className = "status"; pvnote.textContent = "Coloriage de l'aperçu…";
+      m.insertBefore(pvnote, cap);
+      fillPreview(pic.url, picks).then(function(res){
+        if (!res.filled){ pvnote.textContent = "Aperçu coloré impossible sur cette photo : les traits ne sont pas assez nets ou fermés."; return; }
+        pvnote.textContent = "Aperçu style marqueur à alcool (approximatif : la couleur s'arrête aux traits fermés) :";
+        m.insertBefore(res.canvas, cap);
+      }, function(){ pvnote.remove(); });
     } else {
       var fade = document.createElement("div"); fade.className = "fade";
       fade.style.background = cols.length > 1 ? "linear-gradient(90deg," + cols.join(",") + ")" : cols[0];
